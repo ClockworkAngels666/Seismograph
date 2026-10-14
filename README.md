@@ -42,6 +42,10 @@ diverging *map of change* on *What changed*, the compared countries on *Compare*
 watchlist, and each country's own refugee links on its profile. Every chart, map and table names its sources
 underneath, with links.
 
+A **console bar** along the bottom of every page keeps the tracked country one tap away (flag, score, tier,
+change and a small seismogram of its risk since 2015) next to tabs for Home, Compare, Live and Guide and a
+*Find* sheet for countries and pages.
+
 ## Method in brief
 
 * **17 indicators in 4 pillars**: Political Stability & Violence (35%), Governance & Institutions (25%),

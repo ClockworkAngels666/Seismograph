@@ -99,6 +99,207 @@ def weights_tuple() -> tuple[tuple[str, float], ...]:
 
 
 # ---------------------------------------------------------------------------
+# Dock: a console bar along the bottom of every page (tracked-country readout + tabs + find)
+# ---------------------------------------------------------------------------
+DOCK_TABS = [  # (page, label, icon, url_path); the readout on the left is the way into the country page
+    ("app_pages/overview.py", "Home", ":material/public:", ""),
+    (COMPARE_PAGE, "Compare", ":material/compare_arrows:", "compare"),
+    ("app_pages/video.py", "Live", ":material/live_tv:", "video"),
+    ("app_pages/guide.py", "Guide", ":material/lightbulb:", "guide"),
+]
+DOCK_LINKS = [  # quick links in the Find sheet
+    ("app_pages/watchlist.py", "Events watchlist", ":material/event:"),
+    ("app_pages/changes.py", "What changed", ":material/trending_up:"),
+    ("app_pages/glossary.py", "Glossary & legend", ":material/help:"),
+    ("app_pages/sources.py", "Sources & citations", ":material/verified:"),
+]
+ACCENT = "#fd8078"
+
+
+def _wrap(key: str) -> str:
+    """Streamlit puts each container in a layout wrapper, and that wrapper is the flex item."""
+    return f'[data-testid="stLayoutWrapper"]:has(> .st-key-{key})'
+
+
+_ON = '[class*="st-key-sg_tab_on"] a'
+DOCK_CSS = f"""
+[data-testid="stMainBlockContainer"] {{ padding-bottom: 8.5rem !important; }}
+.st-key-sg_dock {{
+  position: fixed !important; z-index: 1000; left: 0; right: 0; bottom: 0; width: auto !important;
+  container-type: inline-size; container-name: sgdock;
+  background: #0a0a0a; border-top: 1px solid #2c2c2a; box-shadow: 0 -12px 28px rgba(0,0,0,0.7);
+  padding: 7px max(12px, calc((100% - 980px) / 2)) calc(7px + env(safe-area-inset-bottom)) !important;
+  gap: 8px 14px !important; align-items: center !important; justify-content: space-between !important;
+  transition: left .25s ease;
+}}
+.st-key-sg_dock::before {{  /* the seismograph trace along the top edge */
+  content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 1px;
+  background: linear-gradient(90deg, transparent, #3987e5 20%, {ACCENT} 80%, transparent);
+}}
+@media (min-width: 768px) {{
+  body:has(section[data-testid="stSidebar"][aria-expanded="true"]) .st-key-sg_dock {{ left: 300px; }}
+}}
+/* never fade or flash while the page re-runs */
+.st-key-sg_dock [data-stale], [data-stale]:has(> .st-key-sg_dock) {{ opacity: 1 !important; transition: none !important; }}
+.st-key-sg_dock a:focus, .st-key-sg_dock button:focus {{ outline: none !important; box-shadow: none !important; }}
+.st-key-sg_dock a:focus-visible, .st-key-sg_dock button:focus-visible {{ outline: 1px solid {ACCENT} !important;
+  outline-offset: -2px; }}
+
+/* readout: the tracked country (shown first, rendered last so the tabs never wait for it) */
+{_wrap("sg_read_on")}, {_wrap("sg_read_off")} {{ order: -1; flex: 1 1 260px !important; max-width: 440px; min-width: 0; }}
+[class*="st-key-sg_read_o"] {{ position: relative; background: #141414; border: 1px solid #2c2c2a;
+  border-left: 3px solid var(--sg-c, #898781); border-radius: 8px; padding: 6px 10px !important; }}
+[class*="st-key-sg_read_o"]:hover {{ background: #1a1a19; }}
+.st-key-sg_read_on {{ border-color: {ACCENT}88; border-left-color: var(--sg-c, #898781); }}
+[class*="st-key-sg_read_o"] {{ overflow: visible !important; min-height: 46px; }}
+[class*="st-key-sg_read_o"] [data-testid="stMarkdownContainer"] {{ margin-bottom: 0 !important; }}
+[class*="st-key-sg_read_o"] > [data-testid="stElementContainer"] {{ flex: 1 1 auto !important; min-width: 0; }}
+.st-key-sg_read_link, .st-key-sg_read_link * {{ position: static !important; }}
+.st-key-sg_read_link a {{ position: absolute !important; inset: 0; opacity: 0; z-index: 1; }}
+{_wrap("sg_read_link")} {{ position: absolute !important; inset: 0; }}
+.sg-read {{ display: flex; align-items: center; gap: 10px; min-width: 0; width: 100%; }}
+.sg-read img {{ width: 26px; height: 19px; object-fit: cover; border-radius: 3px; flex: none;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.14); }}
+.sg-read-text {{ min-width: 0; flex: 1; line-height: 1.25; }}
+.sg-read-name {{ font-weight: 700; font-size: 0.86rem; color: #fff; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; }}
+.sg-read-meta {{ font-size: 0.68rem; color: #a3a29a; white-space: nowrap; letter-spacing: 0.04em; text-transform: uppercase; }}
+.sg-read-meta b {{ color: var(--sg-c); font-size: 0.8rem; }}
+.sg-spark {{ flex: none; width: 92px; height: 26px; }}
+
+/* tabs */
+{_wrap("sg_tabs")} {{ flex: 0 0 auto !important; }}
+.st-key-sg_tabs {{ gap: 2px !important; }}
+.st-key-sg_tabs > [data-testid="stLayoutWrapper"] {{ flex: 0 0 64px !important; min-width: 0; }}
+.st-key-sg_tabs [data-testid="stElementContainer"], .st-key-sg_tabs [data-testid="stPageLink"],
+.st-key-sg_tabs [data-testid="stPageLink"] > div, .st-key-sg_tabs [data-testid="stPopover"] {{ width: 100% !important; }}
+.st-key-sg_tabs a, .st-key-sg_tabs button {{
+  position: relative; flex-direction: column !important; align-items: center !important; justify-content: center !important;
+  gap: 2px !important; padding: 7px 2px 5px !important; height: 52px; min-height: 0 !important; width: 100% !important;
+  border: none !important; box-sizing: border-box;
+  border-radius: 6px !important; background: transparent !important;
+}}
+.st-key-sg_tabs [data-testid="stElementContainer"], .st-key-sg_tabs a {{ margin: 0 !important; }}
+.st-key-sg_tabs a:hover, .st-key-sg_tabs button:hover {{ background: #161616 !important; }}
+.st-key-sg_tabs a p, .st-key-sg_tabs button p {{ font-size: 0.6rem !important; letter-spacing: 0.08em; text-transform: uppercase;
+  margin: 0 !important; white-space: nowrap; line-height: 1.2 !important; }}
+.st-key-sg_tabs a span, .st-key-sg_tabs a p, .st-key-sg_tabs button p, .st-key-sg_tabs button span {{ color: #8f8e87 !important; }}
+.st-key-sg_tabs [data-testid="stIconMaterial"] {{ font-size: 1.3rem !important; }}
+.st-key-sg_tabs button [aria-hidden="true"] {{ display: none !important; }}
+.st-key-sg_tabs button span[data-has-shortcut] {{ display: flex !important; flex-direction: column; align-items: center;
+  gap: 2px; }}
+/* active tab: coral text and a short needle line on top */
+.st-key-sg_tabs {_ON} p, .st-key-sg_tabs {_ON} span, .st-key-sg_tabs a:focus p, .st-key-sg_tabs a:focus span {{
+  color: {ACCENT} !important; }}
+.st-key-sg_tabs {_ON}::before, .st-key-sg_tabs a:focus::before {{
+  content: ""; position: absolute; top: 0; left: 28%; right: 28%; height: 2px; border-radius: 0 0 2px 2px;
+  background: {ACCENT};
+}}
+/* the moment a tab is tapped it takes over the highlight, before the next page has loaded */
+.st-key-sg_dock:has(a:focus) {_ON}:not(:focus) p, .st-key-sg_dock:has(a:focus) {_ON}:not(:focus) span {{
+  color: #8f8e87 !important; }}
+.st-key-sg_dock:has(a:focus) {_ON}:not(:focus)::before {{ display: none; }}
+/* the Live tab carries an on-air dot */
+.st-key-sg_tabs [class*="_live"] a::after {{ content: ""; position: absolute; top: 9px; left: calc(50% + 9px); width: 6px;
+  height: 6px; border-radius: 50%; background: #f0575c; box-shadow: 0 0 0 2px #0a0a0a; }}
+
+/* narrow screens: the readout on top, the tabs spread across a row underneath */
+@container sgdock (max-width: 640px) {{
+  {_wrap("sg_read_on")}, {_wrap("sg_read_off")} {{ flex: 1 1 100% !important; max-width: none; }}
+  {_wrap("sg_tabs")} {{ flex: 1 1 100% !important; }}
+  .st-key-sg_tabs > [data-testid="stLayoutWrapper"] {{ flex: 1 1 0 !important; }}
+  .st-key-sg_tabs a, .st-key-sg_tabs button {{ height: 50px; }}
+}}
+@container sgdock (max-width: 300px) {{ .sg-spark {{ display: none; }} }}
+"""
+
+
+def _on_dock_search() -> None:
+    st.session_state["_jump_to"] = st.session_state.get("dock_search")
+    st.session_state["dock_search"] = None
+
+
+def _sparkline(values: pd.Series, color: str) -> str:
+    """The country's risk since 2015 as a small seismogram (SVG)."""
+    v = values.dropna()
+    if len(v) < 2:
+        return ""
+    lo, hi = float(v.min()), float(v.max())
+    if hi - lo < 10:  # small moves stay small
+        mid = (hi + lo) / 2
+        lo, hi = mid - 5, mid + 5
+    w, h, pad = 92, 26, 3
+    xs = [pad + i * (w - 2 * pad) / (len(v) - 1) for i in range(len(v))]
+    ys = [h - pad - (val - lo) / (hi - lo) * (h - 2 * pad) for val in v]
+    points = " ".join(f"{x:.1f},{y:.1f}" for x, y in zip(xs, ys))
+    return (f'<svg class="sg-spark" viewBox="0 0 {w} {h}" aria-hidden="true">'
+            f'<polyline points="{points}" fill="none" stroke="{color}" stroke-width="1.6" stroke-linejoin="round" '
+            f'stroke-linecap="round" opacity="0.9"/><circle cx="{xs[-1]:.1f}" cy="{ys[-1]:.1f}" r="2.6" '
+            f'fill="{color}"/></svg>')
+
+
+def _readout(on_country_page: bool) -> None:
+    """The tracked country: flag, score, tier, change and its risk since 2015. Tap to open it."""
+    try:
+        core = data.load_core()
+        scores = data.get_scores(core, data.analysis_year(), weights_tuple(), core["version"])
+        hist = history(core)
+    except Exception:  # the dock is a convenience; never let it break a page
+        return
+    countries = core["countries"]
+    iso3 = current_country(countries)
+    row = countries.set_index("iso3").loc[iso3]
+    score = scores["composite"].get(iso3) if iso3 in scores.index else None
+    tier = scores["tier"].get(iso3) if iso3 in scores.index else None
+    color = config.TIER_COLORS.get(tier, "#898781")
+    years = (hist[hist["iso3"] == iso3].set_index("year")["composite"].sort_index().dropna() if not hist.empty
+             else pd.Series(dtype=float))
+    delta = years.iloc[-1] - years.iloc[-2] if len(years) >= 2 else None
+    if score is None or pd.isna(score):
+        meta = "not enough data to score"
+    else:
+        trend = "" if delta is None or pd.isna(delta) else f" · {trend_label(delta)}"
+        meta = f"<b>{score:.0f}</b> · {html.escape(tier)}{trend}"
+    flag = config.flag_url(row["iso2"])
+    st.html(f"<style>.st-key-sg_read_on, .st-key-sg_read_off {{ --sg-c: {color}; }}</style>")
+    with st.container(key=f"sg_read_{'on' if on_country_page else 'off'}", horizontal=True,
+                      vertical_alignment="center", wrap=False):
+        st.markdown(
+            f'<div class="sg-read" style="--sg-c:{color}" title="Open the country profile">'
+            + (f'<img src="{flag}" alt="">' if flag else "")
+            + f'<div class="sg-read-text"><div class="sg-read-name">{html.escape(str(row["name"]))}</div>'
+            f'<div class="sg-read-meta">{meta}</div></div>{_sparkline(years, color)}</div>',
+            unsafe_allow_html=True,
+        )
+        with st.container(key="sg_read_link"):
+            st.page_link(COUNTRY_PAGE, label=f"Open {row['name']}")
+
+
+def dock(current_url_path: str) -> None:
+    """A console bar along the bottom of every page: the tracked country, the main pages and Find."""
+    st.html(f"<style>{DOCK_CSS}</style>")
+    with st.container(key="sg_dock", horizontal=True, wrap=True):
+        with st.container(key="sg_tabs", horizontal=True, wrap=False, gap=None, width="content"):
+            for page, label, icon, url_path in DOCK_TABS:
+                state = "on" if url_path == current_url_path else "off"
+                with st.container(key=f"sg_tab_{state}_{label.lower()}"):
+                    st.page_link(page, label=label, icon=icon, width="stretch")
+            with st.container(key="sg_tab_off_find"):
+                with st.popover("Find", icon=":material/search:", type="tertiary", width="stretch",
+                                help="Search countries and pages"):
+                    try:
+                        options, names = country_options(data.load_countries())
+                        st.selectbox("Find a country", options, index=None, key="dock_search",
+                                     on_change=_on_dock_search, format_func=lambda i: names.get(i, i),
+                                     placeholder="Type a country name…")
+                    except Exception:
+                        pass
+                    for page, label, icon in DOCK_LINKS:
+                        st.page_link(page, label=label, icon=icon)
+        _readout(current_url_path == "country")
+
+
+# ---------------------------------------------------------------------------
 # Loading
 # ---------------------------------------------------------------------------
 @st.fragment(run_every=4)

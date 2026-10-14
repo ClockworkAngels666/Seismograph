@@ -45,4 +45,5 @@ pages = {
 
 page = st.navigation(pages)
 ui.sidebar()
+ui.dock(page.url_path)
 page.run()
