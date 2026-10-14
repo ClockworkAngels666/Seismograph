@@ -86,6 +86,221 @@ SOURCE_LABELS = {
 
 
 # ---------------------------------------------------------------------------
+# Source registry: every dataset and reference behind the tool, cited wherever its data appears
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class Source:
+    name: str
+    publisher: str
+    url: str
+    used_for: str
+    updates: str = ""
+    terms: str = ""
+
+
+SOURCES: dict[str, Source] = {
+    "wgi": Source("Worldwide Governance Indicators", "World Bank", URL_WGI,
+                  "The six governance scores: the Governance pillar and political stability", "Yearly",
+                  "CC BY 4.0"),
+    "wdi": Source("World Development Indicators", "World Bank", URL_WDI,
+                  "Population, homicide rate, FX reserves, unemployment, youth unemployment", "Per indicator, "
+                  "several times a year", "CC BY 4.0"),
+    "ucdp": Source("UCDP battle-related deaths (via World Bank WDI)", "Uppsala Conflict Data Program",
+                   "https://ucdp.uu.se/downloads/", "Battle deaths, armed-conflict flags and the globe's conflict "
+                   "rings", "Yearly"),
+    "ucdp_def": Source("UCDP definitions", "Uppsala Conflict Data Program",
+                       "https://www.uu.se/en/department/peace-and-conflict-research/research/ucdp/ucdp-definitions",
+                       "The 25 (armed conflict) and 1,000 (war) battle-death thresholds"),
+    "imf": Source("World Economic Outlook", "International Monetary Fund", URL_IMF_WEO,
+                  "Inflation, growth, public debt, fiscal and current-account balances, GDP per capita, projections",
+                  "Twice a year (April and October)"),
+    "imf_ara": Source("Assessing Reserve Adequacy", "International Monetary Fund",
+                      "https://www.imf.org/external/np/spr/ara/", "The 3-months-of-imports reserves warning line"),
+    "unhcr": Source("Refugee Data Finder", "UNHCR", URL_UNHCR,
+                    "Forcibly displaced people, displacement share, refugee flows and host countries",
+                    "Yearly, with a mid-year update"),
+    "news": Source("Bing News and Google News (RSS search)", "Microsoft and Google", "https://www.bing.com/news",
+                   "Live headlines and photos; every headline links to its original publisher", "Every 10 minutes"),
+    "gdelt": Source("GDELT DOC 2.0", "The GDELT Project", URL_GDELT, "Backup headlines and media tone",
+                    "Every 15 minutes"),
+    "youtube": Source("Official YouTube channels of broadcasters, think tanks and institutions", "Each channel",
+                      "https://www.youtube.com", "Live TV and video reports, through official embeds and feeds",
+                      "Live; feeds every 15 minutes", "Each video belongs to its channel"),
+    "ifes": Source("ElectionGuide", "IFES", "https://www.electionguide.org/", "Dates of the events in the watchlist",
+                   "Checked when events are added"),
+    "wb_countries": Source("World Bank country API", "World Bank", URL_WB_API,
+                           "Country list, regions, income groups, capitals", "Continuously", "CC BY 4.0"),
+    "natural_earth": Source("Admin-0 countries, 1:110m and 1:50m (v5.1.2)", "Natural Earth",
+                            "https://www.naturalearthdata.com/", "Country outlines on the 3D globe", "Static",
+                            "Public domain"),
+    "flags": Source("flag-icons (v7.5.0)", "lipis/flag-icons", "https://github.com/lipis/flag-icons",
+                    "Country flags", "Static", "MIT"),
+    "icd203": Source("ICD 203: Analytic Standards", "US Office of the Director of National Intelligence",
+                     "https://www.dni.gov/files/documents/ICD/ICD-203.pdf",
+                     "Estimative language (probability words) in the assessment builder"),
+    "oecd_jrc": Source("Handbook on Constructing Composite Indicators", "OECD and European Commission JRC",
+                       "https://www.oecd.org/en/publications/handbook-on-constructing-composite-indicators-"
+                       "methodology-and-user-guide_9789264043466-en.html",
+                       "The method behind the index: normalisation, weighting, aggregation"),
+    # --- Definitions, methods and thresholds ---
+    "wgi_docs": Source("WGI documentation", "World Bank", f"{URL_WGI}/documentation",
+                       "Definitions of the six governance dimensions"),
+    "wgi_method": Source("The Worldwide Governance Indicators: 2025 Methodology Revision", "World Bank", URL_WGI_2025,
+                         "The 0–100 scale and the 90% confidence intervals of the governance scores"),
+    "wb_groups": Source("World Bank country and lending groups", "World Bank",
+                        "https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-"
+                        "lending-groups", "Regions and income groups used for peers and regional briefings",
+                        "Every 1 July"),
+    "iso3166": Source("ISO 3166 country codes", "International Organization for Standardization",
+                      "https://www.iso.org/iso-3166-country-codes.html", "The two- and three-letter country codes"),
+    "unhcr_def": Source("Refugee Data Finder: definitions", "UNHCR",
+                        "https://www.unhcr.org/refugee-statistics/methodology/definition",
+                        "Who is counted as forcibly displaced, and in which category"),
+    "refugee_convention": Source("The 1951 Refugee Convention", "UNHCR",
+                                 "https://www.unhcr.org/about-unhcr/overview/1951-refugee-convention",
+                                 "The legal definition of a refugee"),
+    "unhcr_asylum": Source("Asylum-seekers", "UNHCR", "https://www.unhcr.org/about-unhcr/who-we-protect/asylum-seekers",
+                           "Who counts as an asylum seeker"),
+    "unhcr_idp": Source("Internally displaced people", "UNHCR",
+                        "https://www.unhcr.org/about-unhcr/who-we-protect/internally-displaced-people",
+                        "Who counts as internally displaced"),
+    "unodc": Source("Global Study on Homicide", "UN Office on Drugs and Crime",
+                    "https://www.unodc.org/unodc/en/data-and-analysis/global-study-on-homicide.html",
+                    "The homicide statistics behind the World Bank series, and global comparisons"),
+    "ilo_unemployment": Source("Unemployment, total (modelled ILO estimate)", "International Labour Organization via "
+                               "World Bank", "https://data.worldbank.org/indicator/SL.UEM.TOTL.ZS",
+                               "The international definition of unemployment used by the index"),
+    "imf_weo": Source("World Economic Outlook reports", "International Monetary Fund",
+                      "https://www.imf.org/en/Publications/WEO", "The analysis that comes with the IMF projections",
+                      "April and October"),
+    "imf_fm": Source("Fiscal Monitor", "International Monetary Fund", "https://www.imf.org/en/Publications/FM",
+                     "Public debt and budget balances in context", "April and October"),
+    "imf_inflation": Source("Inflation: Prices on the Rise (Back to Basics)", "IMF Finance & Development",
+                            "https://www.imf.org/en/Publications/fandd/issues/Series/Back-to-Basics/Inflation",
+                            "A plain-language explanation of inflation"),
+    "imf_gdp": Source("Gross Domestic Product: An Economy's All (Back to Basics)", "IMF Finance & Development",
+                      "https://www.imf.org/en/Publications/fandd/issues/Series/Back-to-Basics/gross-domestic-"
+                      "product-GDP", "A plain-language explanation of GDP and growth"),
+    "imf_lending": Source("IMF Lending (factsheet)", "International Monetary Fund",
+                          "https://www.imf.org/en/About/Factsheets/IMF-Lending",
+                          "What an IMF programme is and how its conditions work"),
+    "rr_inflation": Source("This Time is Different: A Panoramic View of Eight Centuries of Financial Crises (NBER "
+                           "w13882)", "Carmen Reinhart and Kenneth Rogoff, NBER", "https://www.nber.org/papers/w13882",
+                           "The 20%-a-year line for an inflation crisis"),
+    "rr_debt": Source("Growth in a Time of Debt (NBER w15639)", "Carmen Reinhart and Kenneth Rogoff, NBER",
+                      "https://www.nber.org/papers/w15639",
+                      "The 90%-of-GDP public-debt benchmark (its growth effect is disputed)"),
+    "freund": Source("Current Account Adjustment in Industrialized Countries (IFDP 692)",
+                     "Caroline Freund, US Federal Reserve Board",
+                     "https://www.federalreserve.gov/pubs/ifdp/2000/692/default.htm",
+                     "Current-account deficits around 5% of GDP as the point where adjustment tends to start"),
+    "eu_sgp": Source("Stability and Growth Pact", "European Commission",
+                     "https://economy-finance.ec.europa.eu/economic-governance-framework/stability-and-growth-pact_en",
+                     "The EU's 3%-of-GDP deficit reference value, for comparison with the 5% flag"),
+    "cia_tradecraft": Source("A Tradecraft Primer: Structured Analytic Techniques", "US Central Intelligence Agency",
+                             "https://www.cia.gov/resources/csi/static/Tradecraft-Primer-apr09.pdf",
+                             "Scenarios, drivers and signposts, as used in the assessment builder"),
+    "heuer": Source("Psychology of Intelligence Analysis", "Richards J. Heuer Jr., CIA Center for the Study of "
+                    "Intelligence", "https://www.cia.gov/resources/csi/static/Pyschology-of-Intelligence-Analysis.pdf",
+                    "Cognitive biases, and why judgments should carry stated probabilities"),
+    "ocha": Source("UN Office for the Coordination of Humanitarian Affairs", "United Nations",
+                   "https://www.unocha.org/", "Humanitarian situation reports and appeals"),
+    "globe_gl": Source("globe.gl (v2.46.2) and three-globe", "Vasco Asturiano", "https://globe.gl/",
+                       "The 3D globe engine and its night-Earth texture", "Static", "MIT"),
+    # --- Independent indices to cross-check the scores against ---
+    "acled": Source("Armed Conflict Location & Event Data (ACLED)", "ACLED", "https://acleddata.com/",
+                    "Political violence and protest events, near real time", "Weekly", "Registration required"),
+    "gpi": Source("Global Peace Index", "Institute for Economics & Peace", "https://www.visionofhumanity.org/maps/",
+                  "Peacefulness of 163 countries: conflict, safety and militarisation", "Yearly"),
+    "sipri": Source("SIPRI databases", "Stockholm International Peace Research Institute",
+                    "https://www.sipri.org/databases", "Military spending, arms transfers and peace operations",
+                    "Yearly"),
+    "vdem": Source("Varieties of Democracy (V-Dem)", "V-Dem Institute, University of Gothenburg",
+                   "https://www.v-dem.net/", "Hundreds of expert-coded measures of democracy", "Yearly"),
+    "freedom_house": Source("Freedom in the World", "Freedom House", "https://freedomhouse.org/report/freedom-world",
+                            "Political rights and civil liberties scores", "Yearly"),
+    "eiu_democracy": Source("Democracy Index", "Economist Intelligence Unit",
+                            "https://www.eiu.com/n/campaigns/democracy-index-2024/",
+                            "Regime type and quality of democracy", "Yearly"),
+    "rsf": Source("World Press Freedom Index", "Reporters Without Borders", "https://rsf.org/en/index",
+                  "Media freedom by country", "Yearly"),
+    "oecd_crc": Source("Country Risk Classification", "OECD",
+                       "https://www.oecd.org/en/topics/country-risk-classification.html",
+                       "Official export-credit country risk categories (0–7)", "Several times a year"),
+    "undp_hdi": Source("Human Development Index", "UN Development Programme",
+                       "https://hdr.undp.org/data-center/human-development-index",
+                       "Health, education and income", "Yearly"),
+    "fao_giews": Source("Global Information and Early Warning System (GIEWS)", "UN Food and Agriculture Organization",
+                        "https://www.fao.org/giews/en/", "Food-security early warnings and food-price alerts",
+                        "Monthly"),
+    "idmc": Source("Internal Displacement Monitoring Centre", "IDMC (Norwegian Refugee Council)",
+                   "https://www.internal-displacement.org/", "Internal displacement by conflict and disasters",
+                   "Yearly, with updates"),
+    "reliefweb": Source("ReliefWeb", "UN OCHA", "https://reliefweb.int/",
+                        "Humanitarian reports, maps and situation updates", "Daily"),
+    "hdx": Source("Humanitarian Data Exchange", "UN OCHA", "https://data.humdata.org/",
+                  "Open crisis datasets from humanitarian agencies", "Daily"),
+    "fsi": Source("Fragile States Index", "The Fund for Peace", "https://fragilestatesindex.org/",
+                  "An overall fragility score from 12 indicators", "Yearly"),
+}
+# The index is built from these
+INDEX_SOURCES = ["wgi", "wdi", "ucdp", "imf", "unhcr"]
+# Short names for inline citations
+CITE_LABELS = {
+    "wgi": "World Bank WGI", "wdi": "World Bank WDI", "ucdp": "UCDP", "ucdp_def": "UCDP definitions",
+    "imf": "IMF WEO", "imf_ara": "IMF reserve adequacy", "unhcr": "UNHCR", "news": "Bing News & Google News",
+    "gdelt": "GDELT", "youtube": "official YouTube channels", "ifes": "IFES ElectionGuide",
+    "wb_countries": "World Bank country API", "natural_earth": "Natural Earth", "flags": "flag-icons",
+    "icd203": "ICD 203 (ODNI)", "oecd_jrc": "OECD/JRC Handbook", "wgi_method": "WGI methodology",
+    "wgi_docs": "WGI documentation", "wb_groups": "World Bank country groups", "unhcr_def": "UNHCR definitions",
+    "rr_inflation": "Reinhart & Rogoff (2008)", "rr_debt": "Reinhart & Rogoff (2010)", "freund": "Freund (2000)",
+    "eu_sgp": "EU Stability and Growth Pact", "unodc": "UNODC", "imf_weo": "IMF WEO reports", "imf_fm": "IMF Fiscal Monitor",
+    "cia_tradecraft": "CIA Tradecraft Primer", "heuer": "Heuer", "globe_gl": "globe.gl",
+}
+# How the Sources page groups the registry
+SOURCE_GROUPS: dict[str, list[str]] = {
+    "Country lists, codes and groups": ["wb_countries", "wb_groups", "iso3166"],
+    "Definitions behind the warnings": ["ucdp_def", "unhcr_def", "refugee_convention", "unhcr_asylum", "unhcr_idp",
+                                        "imf_ara", "rr_inflation", "rr_debt", "freund", "eu_sgp", "unodc",
+                                        "ilo_unemployment"],
+    "Method and analytic tradecraft": ["oecd_jrc", "wgi_docs", "wgi_method", "icd203", "cia_tradecraft", "heuer"],
+    "Economic explainers and reports": ["imf_weo", "imf_fm", "imf_inflation", "imf_gdp", "imf_lending"],
+    "Live news, video and events": ["news", "gdelt", "youtube", "ifes", "ocha"],
+    "Maps and graphics": ["natural_earth", "globe_gl", "flags"],
+}
+# Independent sources to check each pillar against (not used in the score)
+CROSS_CHECKS: dict[str, list[str]] = {
+    "stability": ["acled", "gpi", "sipri"],
+    "governance": ["vdem", "freedom_house", "eiu_democracy", "rsf"],
+    "economic": ["oecd_crc", "imf_weo", "imf_fm"],
+    "social": ["undp_hdi", "fao_giews", "idmc", "reliefweb", "hdx"],
+    "composite": ["fsi"],
+}
+
+
+def series_source(key: str) -> str:
+    """The SOURCES key behind a raw series."""
+    if key.startswith("wgi_"):
+        return "wgi"
+    if key == "battle_deaths":
+        return "ucdp"
+    return {"IMF": "imf", "UNHCR": "unhcr"}.get(RAW_SERIES[key][0], "wdi")
+
+
+def series_url(key: str) -> str | None:
+    """The public data page of a raw series (World Bank indicator page, IMF DataMapper chart, UNHCR finder)."""
+    spec = RAW_SERIES.get(key)
+    if spec is None:
+        return None
+    provider, code, options = spec
+    if provider == "WB":
+        return URL_WGI if options.get("source") == 3 else f"https://data.worldbank.org/indicator/{code}"
+    if provider == "IMF":
+        return f"https://www.imf.org/external/datamapper/{code}@WEO"
+    return URL_UNHCR
+
+
+# ---------------------------------------------------------------------------
 # Pillars and indicators
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
@@ -266,6 +481,25 @@ INDICATORS: list[Indicator] = [
     ),
 ]
 INDICATOR_BY_KEY = {i.key: i for i in INDICATORS}
+
+
+def indicator_source(ind: Indicator) -> str:
+    """The SOURCES key behind an indicator, for citations."""
+    if ind.key.startswith("wgi_"):
+        return "wgi"
+    if ind.key == "battle_deaths_100k":
+        return "ucdp"
+    if ind.key == "displaced_share":
+        return "unhcr"
+    return "imf" if RAW_SERIES[ind.series][0] == "IMF" else "wdi"
+
+
+def indicator_url(ind: Indicator) -> str:
+    """Where to see the data behind an indicator, as published by its source."""
+    if ind.series:
+        return series_url(ind.series) or ind.source_url
+    return {"battle_deaths_100k": "https://data.worldbank.org/indicator/VC.BTL.DETH",
+            "displaced_share": URL_UNHCR}.get(ind.key, ind.source_url)
 SCORED_INDICATORS = [i for i in INDICATORS if i.scored]
 
 
@@ -345,6 +579,81 @@ def map_colorscale(metric: str) -> list[list]:
     return [[i / (len(ramp) - 1), c] for i, c in enumerate(ramp)]
 
 
+# ---------------------------------------------------------------------------
+# Video: broadcasters' and think tanks' official YouTube channels (embeds and public RSS feeds, no API key)
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class Channel:
+    id: str
+    region: str
+    origin: str
+    funding: str  # "Public broadcaster", "State-funded", "State-owned" or "Commercial"
+
+
+LIVE_CHANNELS: dict[str, Channel] = {  # 24/7 live English-language news streams, verified via their feeds
+    "ABC News (US)": Channel("UCBi2mrWuNuyYy4gbM6fU18Q", "Americas", "United States", "Commercial"),
+    "CBS News": Channel("UC8p1vwvWtl6T73JiExfWs1g", "Americas", "United States", "Commercial"),
+    "NBC News": Channel("UCeY0bbntWzzVIaj2z3QigXg", "Americas", "United States", "Commercial"),
+    "Bloomberg Television": Channel("UCIALMKvObZNtJ6AmdCLP7Lg", "Americas", "United States", "Commercial"),
+    "Global News": Channel("UChLtXXpo4Ge1ReTEboVvTDg", "Americas", "Canada", "Commercial"),
+    "DW News": Channel("UCknLrEdhRCp1aegoMqRaCZg", "Europe", "Germany", "Public broadcaster"),
+    "France 24 English": Channel("UCQfwfsi5VrQ8yKZ-UWmAEFg", "Europe", "France", "Public broadcaster"),
+    "Sky News": Channel("UCoMdktPbSTixAyNGwb-UYkQ", "Europe", "United Kingdom", "Commercial"),
+    "Euronews": Channel("UCSrZ3UV4jOidv8ppoVuvW9Q", "Europe", "Pan-European", "Commercial"),
+    "Al Jazeera English": Channel("UCNye-wNBqNL5ZzHSJj3l8Bg", "Middle East", "Qatar", "State-funded"),
+    "TRT World": Channel("UC7fWeaHhqgM4Ry-RMpM2YYw", "Middle East", "Türkiye", "State-owned"),
+    "i24NEWS English": Channel("UCvHDpsWKADrDia0c99X37vg", "Middle East", "Israel", "Commercial"),
+    "Africanews": Channel("UC1_E8NeF5QHY2dtdLRBCCLA", "Africa", "Pan-African", "Commercial"),
+    "SABC News": Channel("UC8yH-uI81UUtEMDsowQyx1g", "Africa", "South Africa", "Public broadcaster"),
+    "Channels Television": Channel("UCEXGDNclvmg6RW0vipJYsTQ", "Africa", "Nigeria", "Commercial"),
+    "Arise News": Channel("UCyEJX-kSj0kOOCS7Qlq2G7g", "Africa", "Nigeria", "Commercial"),
+    "KTN News Kenya": Channel("UCKVsdeoHExltrWMuK0hOWmg", "Africa", "Kenya", "Commercial"),
+    "Citizen TV Kenya": Channel("UChBQgieUidXV1CmDxSdRm3g", "Africa", "Kenya", "Commercial"),
+    "CNA": Channel("UC83jt4dlz1Gjl58fzQrrKZg", "Asia-Pacific", "Singapore", "State-owned"),
+    "NHK WORLD-JAPAN": Channel("UCSPEjw8F2nQDtmUKPFNF7_A", "Asia-Pacific", "Japan", "Public broadcaster"),
+    "ABC News Australia": Channel("UCVgO39Bk5sMo66-6o6Spn6Q", "Asia-Pacific", "Australia", "Public broadcaster"),
+    "WION": Channel("UC_gUM8rL-Lrg6O3adPW9K1g", "Asia-Pacific", "India", "Commercial"),
+    "NDTV": Channel("UCZFMm1mMw0F81Z37aaEzTUA", "Asia-Pacific", "India", "Commercial"),
+    "India Today": Channel("UCYPvAwZP8pZhSMW8qs7cVCw", "Asia-Pacific", "India", "Commercial"),
+    "CGTN": Channel("UCgrNz-aDmcr2uuto8_DL2jg", "Asia-Pacific", "China", "State-owned"),
+}
+LIVE_REGIONS = ["Europe", "Americas", "Middle East", "Africa", "Asia-Pacific"]
+OTHER_NEWS_CHANNELS: dict[str, Channel] = {  # news uploads, but no 24/7 stream that can be embedded
+    "BBC News": Channel("UC16niRr50-MSBwiO3YDb3RA", "Europe", "United Kingdom", "Public broadcaster"),
+    "Reuters": Channel("UChqUTb7kYRX8-EiaN3XFrSQ", "Europe", "United Kingdom", "Commercial"),
+    "Associated Press": Channel("UC52X5wxOL_s5yw0dQk7NtgA", "Americas", "United States", "Non-profit cooperative"),
+}
+NEWS_VIDEO_CHANNELS = {name: c.id for name, c in {**LIVE_CHANNELS, **OTHER_NEWS_CHANNELS}.items()}
+ANALYSIS_VIDEO_CHANNELS = {  # think tanks: interviews, explainers and expert panels
+    "Council on Foreign Relations": "UCL_A4jkwvKuMyToAPy3FQKQ",
+    "International Crisis Group": "UCj015l-Gu66iB80-X_sr9tw",
+    "Carnegie Endowment": "UCDeDd29TrRzAkSKXBCtGhxA",
+    "Brookings Institution": "UCi7jxgIOxcRaF4Q54U7lF3g",
+    "Atlantic Council": "UCw0y9zO1RXI6uEzoKbbnxTQ",
+    "CSIS": "UCr5jq6MC_VCe1c5ciIZtk_w",
+}
+INSTITUTION_VIDEO_CHANNELS = {  # international organisations and NGOs
+    "United Nations": "UC5O114-PQNYkurlTg6hekZw",
+    "IMF": "UCIYhr3JsLYfKkCM7-W5B6DA",
+    "World Bank": "UCE9mrcoX-oE-2f1BL-iPPoQ",
+    "ICRC (Red Cross)": "UCZyACOXbNnPs2RXA_Iv9pxA",
+    "Human Rights Watch": "UCoS-mm5bC5eY07AaKntKzgw",
+}
+# Extra words that identify a country in video titles (besides its name). All-caps entries match case-sensitively.
+VIDEO_ALIASES = {
+    "USA": ["US", "U.S.", "American", "Washington"], "GBR": ["UK", "Britain", "British"],
+    "RUS": ["Russian", "Kremlin", "Moscow"], "CHN": ["Chinese", "Beijing"], "UKR": ["Ukrainian", "Kyiv"],
+    "ISR": ["Israeli"], "PSE": ["Gaza", "Palestinian", "West Bank"], "IRN": ["Iranian", "Tehran"],
+    "SDN": ["Sudanese", "Khartoum"], "SSD": ["South Sudanese"], "SYR": ["Syrian", "Damascus"],
+    "AFG": ["Afghan", "Taliban"], "TWN": ["Taiwanese", "Taipei"], "PRK": ["North Korean", "Pyongyang"],
+    "KOR": ["South Korean", "Seoul"], "IND": ["Indian", "New Delhi"], "PAK": ["Pakistani", "Islamabad"],
+    "LBN": ["Lebanese", "Hezbollah", "Beirut"], "YEM": ["Yemeni", "Houthi", "Houthis"], "VEN": ["Venezuelan"],
+    "HTI": ["Haitian"], "MMR": ["Burma"], "NGA": ["Nigerian"], "ETH": ["Ethiopian"], "COD": ["Congolese", "DRC"],
+    "SOM": ["Somali"], "FRA": ["French"], "DEU": ["German"], "TUR": ["Turkey", "Turkish"], "BRA": ["Brazilian"],
+    "MEX": ["Mexican"], "ARG": ["Argentine", "Argentinian"], "JPN": ["Japanese", "Tokyo"], "IRQ": ["Iraqi", "Baghdad"],
+    "SAU": ["Saudi"], "EGY": ["Egyptian", "Cairo"], "MLI": ["Malian"], "BFA": ["Burkinabe"], "NER": ["Nigerien"],
+}
+
 # News search terms for each World Bank region (the full names make poor search queries)
 REGION_NEWS = {
     "East Asia & Pacific": '("East Asia" OR "Southeast Asia" OR Pacific)',
@@ -392,6 +701,24 @@ RED_FLAGS: list[tuple[str, str, float, str, str]] = [
     ("displaced_share", ">=", 5, "serious", "Mass displacement (≥5% of population displaced)"),
     ("homicide", ">=", 20, "serious", "Very high homicide rate (≥20 per 100k)"),
 ]
+# Where each threshold comes from: (indicator key, threshold) -> (SOURCES key or None, basis)
+FLAG_BASIS: dict[tuple[str, float], tuple[str | None, str]] = {
+    ("battle_deaths_raw", 1000): ("ucdp_def", "UCDP's definition of a war"),
+    ("battle_deaths_raw", 25): ("ucdp_def", "UCDP's definition of an active armed conflict"),
+    ("inflation", 50): ("rr_inflation", "Seismograph line for a deep crisis, well above the 20% inflation-crisis "
+                                        "line"),
+    ("inflation", 20): ("rr_inflation", "Reinhart & Rogoff's definition of an inflation crisis"),
+    ("gdp_growth", 0): ("imf_gdp", "By definition: real output is shrinking"),
+    ("gov_debt", 90): ("rr_debt", "Reinhart & Rogoff's high-debt benchmark; later research disputes the growth "
+                                  "effect, so it is only a Watch flag"),
+    ("fiscal_balance", -5): ("eu_sgp", "Seismograph line; the EU's reference value is a 3% deficit"),
+    ("current_account", -5): ("freund", "Deficits near 5% of GDP are where adjustment has tended to start"),
+    ("reserves_months", 3): ("imf_ara", "The traditional rule of thumb discussed in the IMF's reserve-adequacy work"),
+    ("youth_unemployment", 25): ("ilo_unemployment", "Seismograph line: one in four young people in the labour "
+                                                     "force out of work"),
+    ("displaced_share", 5): ("unhcr_def", "Seismograph line: one person in twenty forcibly displaced"),
+    ("homicide", 20): ("unodc", "Seismograph line, several times the global rate in UNODC data"),
+}
 SEVERITY_ORDER = {"critical": 0, "serious": 1, "warning": 2}
 SEVERITY_ICON = {"critical": "🔴", "serious": "🟠", "warning": "🟡"}
 SEVERITY_LABEL = {"critical": "Critical", "serious": "Serious", "warning": "Watch"}

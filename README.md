@@ -23,19 +23,24 @@ an **events watchlist**, and **written analyst assessments** with probabilistic 
 | **Country profile** | Composite score and rank (with trend and change vs last year), automatic data brief, red flags, pillar scores vs regional median, **risk over time** since 2015, sensitivity check, a **what-if simulator** (move indicator sliders or pick a scenario such as *currency crisis* or *armed conflict* and watch the score, tier and rank update), every indicator with its year and source, WGI trends with confidence intervals, IMF macro charts with projections, live risk-related headlines, and the analyst assessment |
 | **Compare countries** | Up to six countries — add them from any profile with *Add to compare*: pillar radar, governance over time, indicator table, economic trajectories |
 | **Events watchlist** | Elections, deadlines and other dated events on a timeline |
+| **Live TV & video** | 25 round-the-clock live news channels from five regions (Europe, the Americas, the Middle East, Africa and Asia-Pacific), each labelled with where it is based and who owns it, plus the latest video reports, think-tank analysis (CFR, Crisis Group, Carnegie, Brookings, Atlantic Council, CSIS) and briefings from institutions and NGOs (UN, IMF, World Bank, ICRC, Human Rights Watch), filterable by country; each profile also shows the videos about that country |
+| **Real-world guide** | What the numbers mean in real life: a plain-language reading of any country, what each tier, pillar and warning threshold looks like on the ground, practical steps for business, NGOs, travel and research, and the tool's limits. Each country profile also has an *In real life* tab with the same reading |
 | **What changed** | This year vs last: biggest risers and fallers, tier changes, the pillar that drove each move, red flags newly crossed or cleared |
 | **Regional briefings** | One region at a time: headline numbers with trends, zoomed map, tier mix since 2015, risers and fallers, ranking, upcoming events and regional news |
 | **Conflict & displacement** | Battle deaths worldwide and by conflict, a table of active wars and conflicts, displacement over time, largest origin and host countries, and the 25 largest refugee corridors |
 | **Economic stress** | A heatmap of inflation, growth, debt, deficits, current account and reserves, a growth-vs-inflation (stagflation) chart, the IMF outlook, and countries crossing several warning thresholds |
 | **Indicator explorer** | Any of the 17 indicators on the 3D globe, with its distribution and the riskiest and safest 10 countries |
+| **Assessment builder** | A form that turns your analysis into a structured assessment file (BLUF, key judgments with ICD 203 estimative language, drivers, scenarios, signposts) |
+| **Methodology** | Every indicator, normalisation, weight, threshold and limitation |
+| **Glossary & legend** | 106 terms in nine colour-coded categories, each with its icon and the sources behind it, searchable; every term links to the organisation that defines or publishes it; plus a visual legend for tiers, pillars, colour scales and globe layers |
+| **Sources & citations** | Every dataset, definition and feed behind the tool, with links, update dates and the status of the data loaded now; the source of every warning threshold; independent indices to cross-check the scores against; who owns each video channel; and how to cite the tool |
+| **Resources** | Curated data sources, professional outlooks, tradecraft guides and books |
 
 Most pages open on their own **3D globe**: the overview (with a live news column and hotspots to watch), regional
 briefings (turned to the region), conflict & displacement (conflict rings and refugee arcs), economic stress, a
 diverging *map of change* on *What changed*, the compared countries on *Compare*, upcoming events on the
-watchlist, and each country's own refugee links on its profile.
-| **Assessment builder** | A form that turns your analysis into a structured assessment file (BLUF, key judgments with ICD 203 estimative language, drivers, scenarios, signposts) |
-| **Methodology** | Every indicator, normalisation, weight, threshold and limitation |
-| **Resources** | Curated data sources, professional outlooks, tradecraft guides and books |
+watchlist, and each country's own refugee links on its profile. Every chart, map and table names its sources
+underneath, with links.
 
 ## Method in brief
 

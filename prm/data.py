@@ -251,6 +251,19 @@ def load_news(name: str | None) -> dict:
         return {"articles": None, "error": str(exc), "source": "", "fetched": fetched}
 
 
+@st.cache_data(ttl=60 * 15, show_spinner=False)
+def load_videos() -> pd.DataFrame | None:
+    """Latest news reports, think-tank analysis and institutions' videos (YouTube feeds), cached for 15 minutes."""
+    frames = []
+    for kind, channels in (("news", config.NEWS_VIDEO_CHANNELS), ("analysis", config.ANALYSIS_VIDEO_CHANNELS),
+                           ("institutions", config.INSTITUTION_VIDEO_CHANNELS)):
+        try:
+            frames.append(sources.fetch_videos(channels, kind))
+        except sources.SourceError:
+            continue
+    return pd.concat(frames, ignore_index=True) if frames else None
+
+
 @st.cache_data(ttl=60 * 60 * 6, show_spinner=False)
 def load_tone(name: str) -> tuple[pd.DataFrame | None, str | None]:
     try:

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import html
+import re
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
-from . import brand, config, content, data, globe
+from . import brand, config, content, data, globe, interpret
 from .config import PILLARS, TIERS
 
 WEIGHT_KEYS = {p.key: f"w_{p.key}" for p in PILLARS}
@@ -58,6 +60,7 @@ def sidebar() -> None:
     with st.sidebar:
         st.caption(config.APP_TAGLINE)
         _country_search()
+        st.page_link("app_pages/glossary.py", label="What does it all mean? Glossary & legend", icon=":material/help:")
         picked = st.session_state.get(COMPARE_LIST, [])
         if picked:
             st.page_link(COMPARE_PAGE, label=f"Your comparison ({len(picked)})", icon=":material/compare_arrows:")
@@ -318,15 +321,15 @@ def add_to_compare(iso3: str) -> None:
     st.session_state.pop("compare_picked", None)
 
 
-def hero(title: str, subtitle: str) -> None:
+def hero(title: str, subtitle: str = "") -> None:
     """A page banner in the Seismograph style: a dark panel with the seismogram trace along the bottom."""
     st.markdown(
         '<div style="position:relative;overflow:hidden;background:linear-gradient(120deg,#0b1424 0%,#0d0d0d 55%,'
         '#1c0f0e 100%);border:1px solid #2c2c2a;border-radius:14px;padding:20px 26px 74px;margin:0 0 12px 0;'
         'color:#ffffff">'
         f'<div style="font-size:2rem;font-weight:700;line-height:1.2">{title}</div>'
-        f'<div style="margin-top:6px;font-size:1.02rem;color:#c3c2b7">{subtitle}</div>'
-        f'<img src="{brand.data_uri("wave")}" alt="" style="position:absolute;left:0;right:0;bottom:10px;'
+        + (f'<div style="margin-top:6px;font-size:1.02rem;color:#c3c2b7">{subtitle}</div>' if subtitle else "")
+        + f'<img src="{brand.data_uri("wave")}" alt="" style="position:absolute;left:0;right:0;bottom:10px;'
         'width:100%;height:58px"></div>',
         unsafe_allow_html=True,
     )
@@ -363,6 +366,27 @@ def fmt_population(p) -> str:
 
 
 FLAG_COLUMN = st.column_config.ImageColumn(" ", width="small")
+SOURCES_PAGE = "app_pages/sources.py"
+
+
+def source_label(key: str) -> str:
+    """The short name of a source, for inline citations."""
+    return config.CITE_LABELS.get(key, config.SOURCES[key].name)
+
+
+def source_link(key: str, label: str | None = None) -> str:
+    """An HTML link to a source that opens in a new tab."""
+    s = config.SOURCES[key]
+    return (f'<a href="{html.escape(s.url)}" target="_blank" rel="noopener">'
+            f'{html.escape(label or source_label(key))} ↗</a>')
+
+
+def cite(*keys: str, note: str | None = None) -> None:
+    """A linked "Sources:" line under a number, chart or table. Keys are config.SOURCES keys;
+    "index" stands for the five datasets the risk index is built from."""
+    expanded = [k for key in keys for k in (config.INDEX_SOURCES if key == "index" else [key])]
+    links = [f"[{source_label(k)}]({config.SOURCES[k].url})" for k in dict.fromkeys(expanded)]
+    st.caption("Sources: " + " · ".join(links) + (f" — {note}" if note else ""))
 
 
 @st.fragment
@@ -449,6 +473,110 @@ def upcoming_events(events: pd.DataFrame, limit: int = 8) -> None:
                 unsafe_allow_html=True)
 
 
+# ---------------------------------------------------------------------------
+# Video: live channels and the report / analysis gallery
+# ---------------------------------------------------------------------------
+def live_player(channel_id: str, height: int = 460) -> None:
+    """A channel's current 24/7 live stream, through YouTube's official embed (privacy-enhanced domain)."""
+    components.html(
+        f'<iframe src="https://www.youtube-nocookie.com/embed/live_stream?channel={channel_id}&rel=0" '
+        'style="width:100%;height:100%;border:0;border-radius:12px;background:#000" '
+        'allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen '
+        'referrerpolicy="strict-origin-when-cross-origin" title="Live news"></iframe>'
+        '<style>html,body{margin:0;height:100%;background:transparent}</style>',
+        height=height,
+    )
+
+
+def videos_about(videos: pd.DataFrame, iso3: str, names: dict[str, str], official: str | None = None) -> pd.DataFrame:
+    """Videos whose title or description mentions a country (its name, news name, official name or aliases)."""
+    name = names.get(iso3, iso3)
+    terms = {name, config.NEWS_NAMES.get(iso3, name)} | ({official} if official else set())
+    loose = [t for t in terms | set(config.VIDEO_ALIASES.get(iso3, [])) if not t.isupper()]
+    exact = [t for t in config.VIDEO_ALIASES.get(iso3, []) if t.isupper()]
+    pattern = re.compile(r"\b(" + "|".join(map(re.escape, sorted(loose, key=len, reverse=True))) + r")\b", re.I)
+    pattern_exact = re.compile(r"\b(" + "|".join(map(re.escape, exact)) + r")\b") if exact else None
+    # Longer country names that contain this one ("South Sudan" for Sudan) are removed before matching
+    longer = [n for n in names.values() if n != name and name.lower() in n.lower()]
+    strip = re.compile("|".join(map(re.escape, sorted(longer, key=len, reverse=True))), re.I) if longer else None
+
+    def mentions(text: str) -> bool:
+        text = strip.sub(" ", text) if strip else text
+        return bool(pattern.search(text) or (pattern_exact and pattern_exact.search(text)))
+
+    hits = (videos["title"].fillna("") + " \n " + videos["description"].fillna("")).map(mentions)
+    return videos[hits]
+
+
+@st.fragment
+def video_gallery(videos: pd.DataFrame, key: str, limit: int = 9, columns: int = 3) -> None:
+    """Thumbnails of videos; "▶ Play" shows the video in a player above the grid (only this section re-runs)."""
+    shown = videos.head(limit).reset_index(drop=True)
+    playing = st.session_state.get(f"{key}_playing")
+    if playing in set(shown["video_id"]):
+        current = shown[shown["video_id"] == playing].iloc[0]
+        st.video(f"https://www.youtube.com/watch?v={playing}")
+        st.caption(f"**{current['title']}** · {current['channel']} · {_time_ago(current['published'])}")
+    cols = st.columns(columns)
+    for i, v in shown.iterrows():
+        with cols[i % columns], st.container(border=True):
+            st.image(v["thumbnail"], width="stretch")
+            url = f"https://www.youtube.com/watch?v={v['video_id']}"
+            st.markdown(f"**[{v['title'].replace('[', '(').replace(']', ')')}]({url})**")
+            views = f" · {v['views'] / 1000:,.0f}k views" if pd.notna(v.get("views")) and v["views"] >= 1000 else ""
+            st.caption(f"{v['channel']} · {_time_ago(v['published'])}{views}")
+            if st.button("▶ Play here", key=f"{key}_{v['video_id']}", width="stretch"):
+                st.session_state[f"{key}_playing"] = v["video_id"]
+                st.rerun(scope="fragment")
+
+
+def render_reading(r: interpret.Reading, key: str) -> None:
+    """A country's numbers translated into real life: on the ground, warning signs, direction, what to do."""
+    st.markdown(f"{tier_badge(r.tier)} &nbsp; {html.escape(r.headline)}", unsafe_allow_html=True)
+    if r.tier is None:
+        st.info(r.ground)
+        return
+    left, right = st.columns([1.15, 1], gap="large")
+    with left:
+        st.markdown("#### What it looks like on the ground")
+        st.markdown(r.ground)
+        for d in r.drivers:
+            with st.container(border=True):
+                st.markdown(pillar_chip(d["pillar"], f"{d['label']} · {d['score']:.0f}/100"), unsafe_allow_html=True)
+                st.markdown(d["ground"])
+                if d["evidence"]:
+                    st.caption("Driven by " + "; ".join(d["evidence"]) + ".")
+                st.caption(f"Felt first by: {d['felt_by']}")
+    with right:
+        st.markdown("#### Warning signs right now")
+        if r.warnings:
+            for w in r.warnings:
+                st.markdown(f"{config.SEVERITY_ICON[w['severity']]} **{w['label']}**  \n{w['meaning']}")
+                st.caption(f"Typical response: {w['response']}")
+        else:
+            st.markdown("✅ No absolute warning thresholds crossed.")
+        if r.near:
+            st.markdown("#### Close to a red line")
+            st.markdown("\n".join(f"- {n}" for n in r.near))
+        if r.direction:
+            st.markdown("#### Direction")
+            st.markdown("\n".join(f"- {d}" for d in r.direction))
+        st.markdown("#### Coming up")
+        if r.events:
+            st.markdown("\n".join(f"- {e}" for e in r.events))
+        else:
+            st.caption("No events in the watchlist for the next 12 months.")
+
+    st.markdown("#### What to do with it")
+    tabs = st.tabs(list(interpret.AUDIENCES.values()))
+    for tab, audience in zip(tabs, interpret.AUDIENCES):
+        with tab:
+            st.markdown("\n".join(f"- {a}" for a in r.actions.get(audience, [])))
+    st.download_button("⬇️ Download this reading (Markdown)", interpret.reading_markdown(r).encode("utf-8"),
+                       file_name=f"{r.iso3}_real_life_reading.md", mime="text/markdown", key=f"{key}_download")
+    st.caption(" ".join(r.caveats))
+
+
 def data_status(core: dict) -> None:
     with st.expander("Data status and provenance"):
         rows = []
@@ -482,3 +610,4 @@ def footer() -> None:
         "and GDELT. Scores are relative and model-based; they are a starting point for analysis, not a forecast. "
         f"Built by {config.AUTHOR}."
     )
+    st.page_link(SOURCES_PAGE, label="Every source, with links and update dates", icon=":material/verified:")

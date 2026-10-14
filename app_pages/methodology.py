@@ -48,6 +48,7 @@ ind_rows = [
     for i in INDICATORS
 ]
 st.dataframe(pd.DataFrame(ind_rows), hide_index=True, height=640)
+ui.cite("index", "oecd_jrc")
 st.markdown(
     f"""
 **Timing.** WGI scores are the latest annual release (perception data collected during the previous year).
@@ -115,12 +116,21 @@ st.markdown(
 )
 st.dataframe(
     pd.DataFrame(
-        [{"Severity": SEVERITY_LABEL[sev], "Flag": label, "Indicator": key, "Rule": f"{op} {thr:g}"} for key, op, thr, sev, label in RED_FLAGS]
-        + [{"Severity": "Watch", "Flag": f"Political stability deteriorating", "Indicator": "wgi_pv",
-            "Rule": f"falls ≥ {config.WGI_TREND_THRESHOLD:g} pts in {config.WGI_TREND_YEARS} years"}]
+        [{"Severity": SEVERITY_LABEL[sev], "Flag": label, "Indicator": key, "Rule": f"{op} {thr:g}",
+          "Basis": config.FLAG_BASIS.get((key, thr), (None, "Seismograph line"))[1],
+          "Reference": config.SOURCES[src].url if (src := config.FLAG_BASIS.get((key, thr), (None, ""))[0]) else None}
+         for key, op, thr, sev, label in RED_FLAGS]
+        + [{"Severity": "Watch", "Flag": "Political stability deteriorating", "Indicator": "wgi_pv",
+            "Rule": f"falls ≥ {config.WGI_TREND_THRESHOLD:g} pts in {config.WGI_TREND_YEARS} years",
+            "Basis": "Seismograph line, larger than most year-to-year noise in the WGI",
+            "Reference": config.SOURCES["wgi_method"].url}]
     ),
     hide_index=True,
+    column_config={"Basis": st.column_config.TextColumn(width="large"),
+                   "Reference": st.column_config.LinkColumn(display_text="Open ↗")},
 )
+ui.cite("ucdp_def", "rr_inflation", "rr_debt", "freund", "imf_ara")
+st.page_link(ui.SOURCES_PAGE, label="Every source and threshold reference", icon=":material/verified:")
 
 st.header("7 · Robustness")
 st.markdown(

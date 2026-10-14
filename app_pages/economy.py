@@ -32,6 +32,7 @@ k2.metric("Economy shrinking", int((view["gdp_growth"] < 0).sum()), border=True,
 k3.metric("Public debt ≥ 90% of GDP", int((view["gov_debt"] >= 90).sum()), border=True)
 k4.metric("Deficit ≥ 5% of GDP", int((view["fiscal_balance"] <= -5).sum()), border=True)
 k5.metric("Reserves < 3 months of imports", int((view["reserves_months"] < 3).sum()), border=True)
+ui.cite("imf", "wdi", "imf_ara")
 
 # Economic red flags per country (used by the globe and the warning-lights table)
 econ_flag_keys = {"inflation", "gdp_growth", "gov_debt", "fiscal_balance", "current_account", "reserves_months"}
@@ -50,6 +51,7 @@ ui.globe_panel(
 )
 st.caption("Countries coloured by the Macroeconomic & Financial pillar (brighter = riskier) and raised by it in 3D. "
            "Hover for the warning thresholds a country crosses; ▶ replays since " + str(config.HISTORY_START) + ".")
+ui.cite("imf", "wdi")
 
 # --- Heatmap ------------------------------------------------------------------------------------------
 st.subheader("Stress heatmap")
@@ -63,6 +65,7 @@ if points and points[0].get("y") in set(heat["name"]):
     ui.go_to_country(heat.loc[heat["name"] == points[0]["y"], "iso3"].iloc[0])
 st.caption("Each cell shows the actual value; its colour is the risk score relative to all countries (brighter = "
            "riskier). Countries sorted by Economy pillar score. Click a cell to open the country.")
+ui.cite("imf", "wdi")
 
 # --- Stagflation scatter and the IMF outlook ---------------------------------------------------------
 s_col, o_col = st.columns([1.15, 1])
@@ -73,6 +76,7 @@ with s_col:
     if iso3 := ui.clicked_iso3(event):
         ui.go_to_country(iso3)
     st.caption("Top-left = prices rising fast while the economy shrinks. Bubble size = population.")
+    ui.cite("imf", "wdi")
 with o_col:
     st.subheader("IMF outlook")
     outlook_key = st.segmented_control("Show", ["Inflation", "Growth", "Public debt"], default="Inflation",
@@ -83,6 +87,7 @@ with o_col:
     series = series[series["iso3"].isin(view["iso3"])]
     st.plotly_chart(charts.imf_outlook(series, year, label, year - 12, year + 5), config={"displayModeBar": False})
     st.caption(f"Median across the selected countries, with the middle half shaded. Dashed = IMF projections to {year + 5}.")
+    ui.cite("imf")
 
 # --- Warning lights -------------------------------------------------------------------------------------
 st.subheader("Countries flashing several warning lights")
@@ -112,5 +117,6 @@ else:
         ui.go_to_country(warnings.iloc[event.selection.rows[0]]["iso3"])
     st.caption("Thresholds: inflation ≥ 20%, negative growth, debt ≥ 90% of GDP, deficit or current-account deficit "
                "≥ 5% of GDP, reserves under 3 months of imports. See the Methodology page.")
+    ui.cite("imf", "wdi", "imf_ara")
 
 ui.footer()

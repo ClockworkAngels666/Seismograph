@@ -49,6 +49,7 @@ k4.metric(f"Forcibly displaced, {dp_year}", ui.fmt_population(displaced_by_year.
           delta_color="inverse", help="People displaced from their country of origin, inside or outside it (UNHCR)")
 k5.metric("Refugees across borders", ui.fmt_population(flows["value"].sum()) if flows is not None else "—", border=True,
           help="Refugees, asylum seekers and others in need of protection living outside their country (UNHCR)")
+ui.cite("ucdp", "ucdp_def", "unhcr")
 
 # --- The globe: stability risk, conflict rings, refugee arcs -------------------------------------------------
 st.subheader("On the globe")
@@ -68,6 +69,7 @@ ui.globe_panel(table=table, hist=hist, flows=flows, metric="stability", metric_l
 st.caption("Countries coloured by the Political Stability & Violence pillar (brighter = riskier). Pulsing rings mark "
            "armed conflict (bigger and faster = more deaths); arcs run from refugees' origin to their host country. "
            "Click a country to see only its flows.")
+ui.cite("index", "ucdp", "unhcr", "natural_earth")
 
 tab_conflict, tab_displacement = st.tabs(["⚔️ Armed conflict", "🧳 Displacement & refugee flows"])
 
@@ -80,12 +82,14 @@ with tab_conflict:
         st.plotly_chart(charts.yearly_bars(recent.index, recent.values, "Battle-related deaths", charts.WORSE, "deaths"),
                         config={"displayModeBar": False})
         st.caption("Sum over all countries of deaths in state-based armed conflict (UCDP), by the country where they occurred.")
+        ui.cite("ucdp", "ucdp_def")
     with c2:
         st.subheader("Deadliest conflicts over time")
         top = latest_bd.nlargest(6).index.tolist()
         st.plotly_chart(charts.compare_lines(core["series"], "battle_deaths", top, names, "Battle-related deaths",
                                              start_year=2010), config={"displayModeBar": False})
         st.caption(f"The six countries with the most battle deaths in {bd_year}.")
+        ui.cite("ucdp")
 
     st.subheader(f"Countries in armed conflict ({bd_year})")
     st.caption("At least 25 battle-related deaths in the year. Click a row to open the country.")
@@ -111,6 +115,7 @@ with tab_conflict:
             "tier": "Tier",
         },
     )
+    ui.cite("ucdp", "ucdp_def", "unhcr", "wgi")
     if event and event.selection.rows:
         ui.go_to_country(conflict.iloc[event.selection.rows[0]]["iso3"])
 
@@ -122,12 +127,14 @@ with tab_displacement:
         st.plotly_chart(charts.yearly_bars(displaced_by_year.index, displaced_by_year.values, "People",
                                            config.PILLAR_COLORS["social"], "people"), config={"displayModeBar": False})
         st.caption("Refugees, asylum seekers, others in need of protection and internally displaced people, by year (UNHCR).")
+        ui.cite("unhcr")
     with d2:
         st.subheader(f"Largest displaced populations ({dp_year})")
         origins = dp[dp["year"] == dp_year].nlargest(10, "value").assign(name=lambda d: d["iso3"].map(names))
         event = st.plotly_chart(charts.ranked_bars(origins, "value", "name", charts.WORSE, "people displaced"),
                                 config={"displayModeBar": False}, on_select="rerun", selection_mode="points",
                                 key="cf_origins")
+        ui.cite("unhcr")
         if iso3 := ui.clicked_iso3(event):
             ui.go_to_country(iso3)
 
@@ -142,6 +149,7 @@ with tab_displacement:
             event = st.plotly_chart(charts.ranked_bars(hosts, "value", "name", charts.BETTER, "refugees hosted"),
                                     config={"displayModeBar": False}, on_select="rerun", selection_mode="points",
                                     key="cf_hosts")
+            ui.cite("unhcr")
             if iso3 := ui.clicked_iso3(event):
                 ui.go_to_country(iso3)
         with h2:
@@ -149,6 +157,7 @@ with tab_displacement:
             st.plotly_chart(charts.refugee_sankey(flows, names), config={"displayModeBar": False})
             st.caption("Origins (red, left) to host countries (blue, right); band width = people. Hover for numbers. "
                        "Internally displaced people are not included, as they never cross a border.")
+            ui.cite("unhcr")
     else:
         st.info("Refugee flow data is not available right now.")
 

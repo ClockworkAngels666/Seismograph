@@ -54,6 +54,7 @@ ui.globe_panel(table=table.reset_index(), hist=hist, flows=core.get("flows"), me
                layers={"spin": True, "flows": False, "conflict": False})
 st.caption("Your countries in colour, everything else dimmed. Click one for its index; ▶ replays since "
            f"{config.HISTORY_START}.")
+ui.cite("index", "natural_earth")
 
 st.subheader("Risk index over time")
 st.plotly_chart(
@@ -63,12 +64,14 @@ st.plotly_chart(
 )
 st.caption(f"The index recomputed for every year since {config.HISTORY_START} (relative to all countries that year). "
            "Higher = riskier.")
+ui.cite("index")
 
 left, right = st.columns([1, 1.2])
 with left:
     st.subheader("Pillar profile")
     st.plotly_chart(charts.radar(sel[[p.key for p in PILLARS]], names), config={"displayModeBar": False})
     st.caption("Further from the centre = higher risk.")
+    ui.cite("index")
 with right:
     st.subheader("Governance over time")
     dim = st.selectbox("WGI dimension", list(WGI_DIMENSIONS), index=1, format_func=WGI_DIMENSIONS.get)
@@ -76,6 +79,7 @@ with right:
         charts.compare_lines(core["series"], f"wgi_{dim}", picked, names, "WGI score (0–100, higher = better)"),
         config={"displayModeBar": False},
     )
+    ui.cite("wgi")
 
 # --- Indicator table -------------------------------------------------------------
 st.subheader("Indicators")
@@ -92,6 +96,7 @@ for p in PILLARS:
         entry[names[iso3]] = "—" if pd.isna(val) else f"{val:.0f}"
     rows.append(entry)
 st.dataframe(pd.DataFrame(rows), hide_index=True, height=min(38 * (len(rows) + 1), 820))
+ui.cite("index")
 
 # --- Economy over time ----------------------------------------------------------------
 st.subheader("Economic trajectory")
@@ -107,5 +112,6 @@ st.plotly_chart(
     config={"displayModeBar": False},
 )
 st.caption(f"IMF World Economic Outlook. Values after {year - 1} are projections.")
+ui.cite("imf")
 
 ui.footer()

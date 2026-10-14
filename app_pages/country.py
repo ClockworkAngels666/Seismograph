@@ -5,7 +5,7 @@ import math
 import pandas as pd
 import streamlit as st
 
-from prm import charts, config, content, data, scoring, ui
+from prm import charts, config, content, data, interpret, scoring, ui
 from prm.config import INDICATORS, PILLARS, SEVERITY_ICON, SEVERITY_LABEL, TIER_ORDER, WGI_DIMENSIONS
 
 core, year, values, scores = ui.load()
@@ -40,6 +40,7 @@ st.caption(
     f"{row['region']} · {row['income']} · Population {ui.fmt_population(v.get('population'))} · "
     f"GDP per capita {gdppc_text} (IMF, {year})"
 )
+ui.cite("wb_countries", "wdi", "imf")
 
 def _add_to_compare() -> None:
     ui.add_to_compare(iso3)
@@ -84,9 +85,10 @@ h4.metric("Data coverage", f"{s['coverage']:.0f}%", border=True,
 flags = scoring.red_flags(v)
 trend = scoring.wgi_trend(core["series"], iso3, "pv")
 
-t_summary, t_peers, t_map, t_whatif, t_indicators, t_governance, t_economy, t_news, t_analyst = st.tabs(
-    ["Summary", "Peers", "🌍 Map & refugee links", "🎛️ What-if simulator", "Indicators", "Governance trends",
-     "Economy", "News pulse", "Analyst assessment"]
+(t_summary, t_real, t_peers, t_map, t_whatif, t_indicators, t_governance, t_economy, t_news,
+ t_analyst) = st.tabs(
+    ["Summary", "🧭 In real life", "Peers", "🌍 Map & refugee links", "🎛️ What-if simulator", "Indicators",
+     "Governance trends", "Economy", "News pulse", "Analyst assessment"]
 )
 
 # --- Summary --------------------------------------------------------------------
@@ -97,6 +99,7 @@ with t_summary:
         for line in scoring.country_brief(iso3, name, values, scores, core["series"], countries, year):
             st.markdown(f"- {line}")
         st.caption("Generated automatically from the data — no judgments added. The analyst view is in the last tab.")
+        ui.cite("index")
     with c2:
         st.subheader("Red flags")
         if trend and trend["change"] <= -config.WGI_TREND_THRESHOLD:
@@ -108,19 +111,23 @@ with t_summary:
         else:
             st.markdown("✅ No absolute warning thresholds crossed.")
         st.caption("Red flags use fixed thresholds (e.g. inflation ≥ 20%), independent of how other countries score.")
+        ui.cite("index", "ucdp_def", "imf_ara")
 
         st.subheader("Upcoming events")
         country_events = content.load_events()
         ui.upcoming_events(country_events[country_events["iso3"] == iso3].assign(country=name), limit=5)
         st.page_link("app_pages/watchlist.py", label="Add or see all events in the watchlist", icon=":material/event:")
+        ui.cite("ifes")
 
     st.subheader("Pillar scores")
     peers = table[table["region"] == row["region"]]
     st.plotly_chart(charts.pillar_bars(s, peers[[p.key for p in PILLARS]].median()), config={"displayModeBar": False})
+    ui.cite("index")
 
     st.subheader("Risk over time")
     if country_hist["composite"].notna().sum() >= 2:
         st.plotly_chart(charts.risk_history(country_hist), config={"displayModeBar": False})
+        ui.cite("index")
         st.caption(
             f"The index recomputed for every year since {config.HISTORY_START}, each time with only the data "
             "available for that year. Scores are relative to the other countries that year, so a rising line means "
@@ -143,6 +150,18 @@ with t_summary:
             "Large swings tell you which dimension drives the score."
         )
 
+# --- In real life ------------------------------------------------------------------
+with t_real:
+    st.subheader(f"What the data means for {name} in real life")
+    st.caption("A plain-language translation of the scores, red flags, trend and upcoming events — and how "
+               "different people commonly act on them. General guidance, not advice.")
+    reading = interpret.country_reading(iso3, table, values, scores, hist, content.load_events(), core.get("flows"),
+                                        year)
+    ui.render_reading(reading, key=f"real_{iso3}")
+    ui.cite("index", "ifes", "ucdp_def", "imf_ara")
+    st.page_link("app_pages/guide.py", label="How to read and use these numbers: the Real-world guide",
+                 icon=":material/explore:")
+
 # --- Peers ------------------------------------------------------------------------
 with t_peers:
     groups = {
@@ -163,6 +182,7 @@ with t_peers:
     st.plotly_chart(charts.peer_strip(s, peer_df[peer_df["iso3"] != iso3], name), config={"displayModeBar": False})
     st.caption("Grey dots = the other countries in the group (hover for names), white tick = group median, "
                f"big dot = {name}.")
+    ui.cite("index", "wb_countries")
 
     st.subheader("Peer ranking")
     peer_table = ranked.assign(name=[f"▶ {n}" if i == iso3 else n for i, n in zip(ranked["iso3"], ranked["name"])],
@@ -182,6 +202,7 @@ with t_map:
                    hint=f"Arcs = refugees from or hosted by {name} · ▶ replays since {config.HISTORY_START}")
     st.caption(f"The globe opens on {name} with its refugee flows: arcs run from the country people fled to the "
                "country hosting them. Click any other country for its index.")
+    ui.cite("unhcr", "ucdp", "natural_earth")
     if flows is not None and not flows.empty:
         flows_year = int(flows["year"].max())
         out_col, in_col = st.columns(2)
@@ -334,6 +355,7 @@ def what_if_simulator() -> None:
             if n["tier"] != s["tier"]:
                 st.caption(f"was {s['tier']}")
         st.plotly_chart(charts.whatif_pillars(s, n), config={"displayModeBar": False}, key="whatif_chart")
+        ui.cite("index")
 
         before = {f["label"] for f in scoring.red_flags(v)}
         after = scoring.red_flags(new_values)
@@ -370,15 +392,29 @@ with t_indicators:
             "Risk score": s.get(f"n_{ind.key}"),
             "Direction": "Higher = riskier" if ind.higher_is_riskier else "Lower = riskier",
             "Source": ind.source,
+            "Data": config.indicator_url(ind),
         })
     st.dataframe(
         pd.DataFrame(rows), hide_index=True, height=640,
-        column_config={"Risk score": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.0f")},
+        column_config={
+            "Risk score": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.0f"),
+            "Data": st.column_config.LinkColumn("Data", display_text="Open ↗",
+                                                help="The source's own page for this indicator"),
+        },
     )
     st.caption(
         "Risk score = position relative to all other economies (0–100). Battle deaths and displacement use a log "
         "scale so that countries without conflict score 0. See the Methodology page."
     )
+    ui.cite("index")
+    with st.expander(f"🔍 Cross-check {name} with independent sources"):
+        st.caption("Respected indices that measure similar things but are not used in the score. Look the country up "
+                   "in them: if they disagree with Seismograph, find out why.")
+        for pillar_key, keys in config.CROSS_CHECKS.items():
+            label = ("**Overall fragility**" if pillar_key == "composite" else ui.pillar_chip(pillar_key))
+            st.markdown(f"{label} &nbsp; " + " · ".join(ui.source_link(k, config.SOURCES[k].name) for k in keys),
+                        unsafe_allow_html=True)
+        st.page_link(ui.SOURCES_PAGE, label="All sources and cross-checks", icon=":material/verified:")
     export = pd.DataFrame(rows).assign(Country=name, ISO3=iso3)
     st.download_button("Download indicators (CSV)", export.to_csv(index=False).encode("utf-8"),
                        file_name=f"{iso3}_indicators_{year}.csv", mime="text/csv")
@@ -393,6 +429,7 @@ with t_governance:
     with st.spinner("Loading confidence intervals…"):
         ci = data.load_wgi_ci()
     st.plotly_chart(charts.wgi_small_multiples(core["series"], ci, iso3), config={"displayModeBar": False})
+    ui.cite("wgi")
     trend_rows = []
     for dim, label in WGI_DIMENSIONS.items():
         t = scoring.wgi_trend(core["series"], iso3, dim)
@@ -415,6 +452,7 @@ with t_economy:
     st.subheader("Macroeconomic picture")
     st.caption(f"Source: {edition}. Dashed lines are IMF projections.")
     st.plotly_chart(charts.macro_small_multiples(core["series"], iso3, year), config={"displayModeBar": False})
+    ui.cite("imf", "wdi", "unhcr")
     e1, e2, e3 = st.columns(3)
     e1.metric("FX reserves (months of imports)", config.INDICATOR_BY_KEY["reserves_months"].fmt(v.get("reserves_months")),
               help="World Bank WDI. Below 3 months is a common warning line.", border=True)
@@ -433,6 +471,19 @@ with t_news:
         "newest first, from Bing News and Google News (photos where the feed has one), with GDELT as a backup."
     )
     ui.news_list(news_name, limit=20, iso2=row["iso2"])
+    ui.cite("news", "gdelt")
+
+    st.subheader(f"📺 Video reports on {name}")
+    all_videos = data.load_videos()
+    about = (ui.videos_about(all_videos, iso3, names, countries.set_index("iso3").get("official_name", pd.Series())
+                             .get(iso3)) if all_videos is not None else None)
+    if about is None or about.empty:
+        st.caption(f"None of the latest videos from the international broadcasters and think tanks mention {name}.")
+    else:
+        st.caption("From the latest uploads of international broadcasters and think tanks; press ▶ to watch here.")
+        ui.video_gallery(about, key=f"profile_videos_{iso3}", limit=6)
+    st.page_link("app_pages/video.py", label="Live TV and all video reports", icon=":material/live_tv:")
+    ui.cite("youtube")
     if st.toggle("Show media tone over the last 3 months (GDELT)"):
         tone, terr = data.load_tone(news_name)
         if terr:
@@ -442,6 +493,7 @@ with t_news:
         else:
             st.plotly_chart(charts.tone_chart(tone), config={"displayModeBar": False})
             st.caption("GDELT average tone of English-language coverage. A sustained fall often precedes or accompanies crises.")
+            ui.cite("gdelt")
 
 # --- Analyst assessment -------------------------------------------------------------------
 with t_analyst:

@@ -25,7 +25,7 @@ SECTIONS = {
         ("ACLED", "https://acleddata.com/",
          "Near-real-time data on political violence and protest events. Requires registration; check its terms before publishing derived data."),
         ("GDELT Project", "https://www.gdeltproject.org/",
-         "Global news monitoring with a free API. Powers the news pulse here."),
+         "Global news monitoring with a free API. The backup news source and media-tone chart here."),
         ("V-Dem", "https://v-dem.net/",
          "The most detailed dataset on democracy and regime characteristics, free for download."),
         ("Fragile States Index (Fund for Peace)", "https://fragilestatesindex.org/",

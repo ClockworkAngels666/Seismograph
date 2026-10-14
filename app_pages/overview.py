@@ -36,6 +36,8 @@ def globe_with_news(metric: str, map_title: str, in_view: set[str], region: str 
             st.markdown("##### 🌍 Global risk news")
             st.caption("Click a country on the globe for its news")
             ui.news_list(None, limit=12)
+        st.page_link("app_pages/video.py", label="Watch live TV news", icon=":material/live_tv:")
+        ui.cite("news", "gdelt")
 
 
 def _pick_region() -> None:
@@ -103,6 +105,7 @@ k4.metric("In armed conflict", n_conflict, border=True, chart_data=_trend("confl
 k5.metric("Analyst assessments", f"{(view['assessment'] == '✓').sum()}", border=True,
           help="Countries with a written assessment in the assessments/ folder.")
 st.caption(f"Small charts: each figure since {config.HISTORY_START}. Arrows compare with {year - 1}; red = more risk.")
+ui.cite("index")
 
 # --- Map ---------------------------------------------------------------------
 map_title = "Composite" if metric == "composite" else config.PILLAR_BY_KEY[metric].short
@@ -130,10 +133,12 @@ else:
     st.markdown(ui.pillar_chip(metric, f"{config.PILLAR_BY_KEY[metric].label} — brighter = riskier"),
                 unsafe_allow_html=True)
 st.caption(caption)
+ui.cite("index", "natural_earth")
 
 # --- Risers and fallers -------------------------------------------------------------
 st.subheader(f"Biggest moves since {year - 1}")
 ui.movers_lists(view, n=5, key="ov_movers")
+ui.cite("index")
 st.page_link("app_pages/changes.py", label="Everything that changed this year →", icon=":material/trending_up:")
 
 # --- Hotspots to watch ----------------------------------------------------------------
@@ -180,6 +185,7 @@ else:
     )
     if hot_event and hot_event.selection.rows:
         ui.go_to_country(hotspots.iloc[hot_event.selection.rows[0]]["iso3"])
+    ui.cite("index", "ifes")
 
 # --- Matrix and distribution -------------------------------------------------------
 left, right = st.columns(2)
@@ -196,12 +202,14 @@ with left:
     if iso3 := ui.clicked_iso3(matrix_event):
         ui.go_to_country(iso3)
     st.caption("Bubble size = population. Top-right = high risk on both dimensions. Click a bubble to open the country.")
+    ui.cite("index")
 with right:
     if region == "All regions":
         st.subheader("Risk tiers by region")
         st.plotly_chart(charts.tier_distribution(scored), config={"displayModeBar": False},
                         on_select=_pick_region, selection_mode="points", key="tier_click")
         st.caption("Regions sorted by the share of countries rated High or Severe. Click a bar to zoom in on that region.")
+        ui.cite("index")
     else:
         st.subheader(f"Highest risk in {region}")
         top = scored.nsmallest(12, "rank").copy()
@@ -263,6 +271,7 @@ st.download_button(
     file_name=f"seismograph_risk_index_{year}.csv",
     mime="text/csv",
 )
+ui.cite("index", "wb_countries", "flags")
 
 # --- Biggest movers ---------------------------------------------------------------
 st.subheader("Biggest movers in political stability")
@@ -284,6 +293,7 @@ else:
                                    on_select="rerun", selection_mode="points", key="movers_click")
     if iso3 := ui.clicked_iso3(movers_event):
         ui.go_to_country(iso3)
+    ui.cite("wgi")
 
 ui.data_status(core)
 ui.footer()

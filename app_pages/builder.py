@@ -35,6 +35,7 @@ with st.container(border=True):
         st.markdown("**Data points to react to**")
         for line in scoring.country_brief(iso3, name, values, scores, core["series"], countries, year)[:5]:
             st.markdown(f"- {line}")
+    ui.cite("index")
 
 with st.expander("📏 Estimative language (ICD 203) — use these words consistently"):
     st.dataframe(
@@ -47,6 +48,7 @@ with st.expander("📏 Estimative language (ICD 203) — use these words consist
         "From the US Intelligence Community's Analytic Standards (ICD 203). Pick a probability and the builder "
         "inserts the matching term, so your words and numbers always agree."
     )
+    ui.cite("icd203")
 
 st.header("1 · Rating")
 r1, r2, r3, r4 = st.columns(4)

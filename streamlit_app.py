@@ -21,8 +21,10 @@ pages = {
         st.Page("app_pages/country.py", title="Country profile", icon=":material/flag:", url_path="country"),
         st.Page("app_pages/compare.py", title="Compare countries", icon=":material/compare_arrows:", url_path="compare"),
         st.Page("app_pages/watchlist.py", title="Events watchlist", icon=":material/event:", url_path="watchlist"),
+        st.Page("app_pages/video.py", title="Live TV & video", icon=":material/live_tv:", url_path="video"),
     ],
     "Briefings": [
+        st.Page("app_pages/guide.py", title="Real-world guide", icon=":material/lightbulb:", url_path="guide"),
         st.Page("app_pages/changes.py", title="What changed", icon=":material/trending_up:", url_path="changes"),
         st.Page("app_pages/regions.py", title="Regional briefings", icon=":material/travel_explore:", url_path="regions"),
         st.Page("app_pages/conflict.py", title="Conflict & displacement", icon=":material/crisis_alert:",
@@ -35,6 +37,8 @@ pages = {
     ],
     "About": [
         st.Page("app_pages/methodology.py", title="Methodology", icon=":material/functions:", url_path="methodology"),
+        st.Page("app_pages/glossary.py", title="Glossary & legend", icon=":material/help:", url_path="glossary"),
+        st.Page("app_pages/sources.py", title="Sources & citations", icon=":material/verified:", url_path="sources"),
         st.Page("app_pages/resources.py", title="Resources", icon=":material/menu_book:", url_path="resources"),
     ],
 }

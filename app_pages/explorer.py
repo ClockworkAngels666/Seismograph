@@ -31,10 +31,12 @@ known = view.dropna(subset=["value"])
 
 st.markdown(
     f"{ui.pillar_chip(ind.pillar)} &nbsp; **{ind.label}** · {ind.unit} · "
-    f"{'higher' if ind.higher_is_riskier else 'lower'} = riskier · source: [{ind.source}]({ind.source_url})",
+    f"{'higher' if ind.higher_is_riskier else 'lower'} = riskier · source: [{ind.source}]({ind.source_url}) · "
+    f"[see the data ↗]({config.indicator_url(ind)})",
     unsafe_allow_html=True,
 )
 st.caption(ind.description)
+source = config.indicator_source(ind)
 
 k1, k2, k3, k4 = st.columns(4)
 k1.metric("Countries with data", len(known), border=True)
@@ -59,11 +61,13 @@ ui.globe_panel(
 )
 st.caption(f"Colour and height = risk score for this indicator (0 = safest country, 100 = riskiest), in the "
            f"{pillar.short} pillar's colours. Hover for the actual value.")
+ui.cite(source, "natural_earth")
 
 # --- Distribution and leaders ----------------------------------------------------------------------------
 st.subheader("How countries are spread")
 st.plotly_chart(charts.distribution(known["value"], f"{ind.short} ({ind.unit})", config.PILLAR_COLORS[ind.pillar],
                                     log=ind.norm == "log"), config={"displayModeBar": False})
+ui.cite(source)
 
 left, right = st.columns(2)
 for col, title, rows in ((left, "Riskiest 10", known.nlargest(10, "risk")), (right, "Safest 10", known.nsmallest(10, "risk"))):

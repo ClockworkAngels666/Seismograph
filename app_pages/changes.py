@@ -92,6 +92,7 @@ ui.globe_panel(
 )
 st.caption("Red = riskier than last year, blue = safer, grey = little change; the bigger the move, the brighter "
            "and taller the country. Moves beyond ±10 points share the end colour.")
+ui.cite("index")
 
 # --- Biggest moves -------------------------------------------------------------------------------
 st.subheader("Biggest moves")
@@ -104,6 +105,7 @@ else:
         ui.go_to_country(iso3)
     st.caption("Red = riskier than last year, blue = safer. Scores are relative, so a country can move because "
                "others changed. Click a bar to open the country.")
+    ui.cite("index")
 
 # --- Tier changes --------------------------------------------------------------------------------------
 st.subheader("Tier changes")
@@ -125,6 +127,7 @@ else:
 # --- What drove the change ------------------------------------------------------------------------------
 st.subheader("What drove each change")
 st.caption("Change in each pillar score since last year, for every country whose composite moved by a point or more.")
+ui.cite("index")
 drivers = moved[moved["delta_1y"].abs() >= ui.TREND_THRESHOLD].sort_values("delta_1y", ascending=False)
 drivers = drivers.reset_index(drop=True)
 event = st.dataframe(
@@ -155,5 +158,6 @@ else:
     )
     if event and event.selection.rows:
         ui.go_to_country(flags.iloc[event.selection.rows[0]]["iso3"])
+ui.cite("index", "ucdp_def", "imf_ara")
 
 ui.footer()

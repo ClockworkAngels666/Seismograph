@@ -46,6 +46,7 @@ if not events.empty:
         )
         st.caption("The brighter the country, the sooner its next event. Hover or click for the event and the "
                    "country's risk index.")
+        ui.cite("ifes", "natural_earth")
 
     window = st.segmented_control(
         "Show", ["Next 90 days", "Next 12 months", "All upcoming", "Past"], default="Next 12 months",
@@ -78,6 +79,7 @@ if not events.empty:
                 "source_url": st.column_config.LinkColumn("Source", display_text="Link"),
             },
         )
+        ui.cite("ifes")
 else:
     st.info(
         "Your watchlist is empty. Add events to the project's `data/events.csv` — "
