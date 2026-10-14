@@ -6,8 +6,12 @@ battle deaths are high, animated arcs for the largest refugee flows, and a year 
 the index since config.HISTORY_START. The selected country is sent back to Python (for the news
 feed), and "Open full profile" sends a one-off trigger.
 
-The library, the Natural Earth outlines and the flags load from jsDelivr in the visitor's browser,
-pinned to exact versions so an upstream release can't change the app.
+Rendering: a night-lights Earth with terrain relief underneath, countries drawn with lit (Phong) materials,
+anti-aliased at up to 2x pixel density. The coarse 1:110m outlines appear at once; detailed 1:50m outlines
+(real coastlines and islands, ~100k points) replace them as soon as they have downloaded.
+
+The library, the Natural Earth outlines, the Earth images and the flags load from jsDelivr in the visitor's
+browser, pinned to exact versions so an upstream release can't change the app.
 """
 
 from __future__ import annotations
@@ -18,9 +22,14 @@ import streamlit as st
 from . import config
 
 GLOBE_JS_URL = "https://cdn.jsdelivr.net/npm/globe.gl@2.46.2/dist/globe.gl.min.js"
-COUNTRIES_URL = (
+COUNTRIES_URL = (  # 1:110m, ~0.5 MB: shown immediately
     "https://cdn.jsdelivr.net/gh/vasturiano/globe.gl@v2.46.2/example/datasets/ne_110m_admin_0_countries.geojson"
 )
+COUNTRIES_DETAILED_URL = (  # 1:50m, ~0.9 MB compressed: swapped in once loaded
+    "https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@v5.1.2/geojson/ne_50m_admin_0_countries.geojson"
+)
+EARTH_IMAGE_URL = "https://cdn.jsdelivr.net/npm/three-globe@2.45.2/example/img/earth-night.jpg"
+EARTH_BUMP_URL = "https://cdn.jsdelivr.net/npm/three-globe@2.45.2/example/img/earth-topology.png"
 HEIGHT = 640
 MOBILE_HEIGHT = 520
 OUT_OF_VIEW_COLOR = "#1b1b1a"  # countries outside the current region / income filter
@@ -131,10 +140,14 @@ _CSS = """
 _JS = """
 const GLOBE_JS = "__GLOBE_JS__";
 const COUNTRIES = "__COUNTRIES__";
-// Natural Earth codes that differ from the World Bank's (Somaliland is shown as part of Somalia)
+const COUNTRIES_DETAILED = "__COUNTRIES_DETAILED__";
+const EARTH_IMAGE = "__EARTH_IMAGE__";
+const EARTH_BUMP = "__EARTH_BUMP__";
+// Natural Earth codes that differ from the World Bank's (Somaliland and Northern Cyprus are drawn
+// as part of Somalia and Cyprus)
 const CODE_FIX = { CYN: "CYP", KOS: "XKX", SOL: "SOM" };
 let libraryPromise = null;
-let countriesPromise = null;
+const countriesPromises = {};  // per outline file
 const lastViews = {};  // per globe (component key): the camera survives Streamlit re-mounting it
 
 function loadLibrary() {
@@ -164,22 +177,23 @@ function centreOf(geometry) {
   return { lng: (minX + maxX) / 2, lat: (minY + maxY) / 2 };
 }
 
-function loadCountries() {
-  if (!countriesPromise) {
-    countriesPromise = fetch(COUNTRIES)
+function loadCountries(url) {
+  if (!countriesPromises[url]) {
+    countriesPromises[url] = fetch(url)
       .then((r) => { if (!r.ok) throw new Error("country shapes: HTTP " + r.status); return r.json(); })
       .then((geojson) => geojson.features
         .map((f) => {
           const p = f.properties;
           const code = /^[A-Z]{3}$/.test(p.ISO_A3) ? p.ISO_A3 : p.ADM0_A3;
+          f.properties = { ADMIN: p.ADMIN };  // drop the ~170 other attributes
           f.iso3 = CODE_FIX[code] || code;
           f.centre = centreOf(f.geometry);
           return f;
         })
-        .filter((f) => f.iso3 !== "ATA"))
-      .catch((err) => { countriesPromise = null; throw err; });
+        .filter((f) => f.iso3 !== "ATA"))  // Antarctica stays as bare terrain
+      .catch((err) => { delete countriesPromises[url]; throw err; });
   }
-  return countriesPromise;
+  return countriesPromises[url];
 }
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g,
@@ -198,10 +212,19 @@ function colourAt(scale, t) {
       const [t0, c0] = scale[i - 1];
       const k = t1 > t0 ? (t - t0) / (t1 - t0) : 0;
       const a = hexToRgb(c0), b = hexToRgb(c1);
-      return "rgb(" + a.map((v, j) => Math.round(v + (b[j] - v) * k)).join(",") + ")";
+      return rgbToHex(a.map((v, j) => v + (b[j] - v) * k));
     }
   }
   return scale[scale.length - 1][1];
+}
+
+function rgbToHex(rgb) {
+  return "#" + rgb.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0")).join("");
+}
+
+function shade(hex, k) {
+  // Darken towards black by k (0..1): the extruded walls of a country
+  return rgbToHex(hexToRgb(hex).map((v) => v * (1 - k)));
 }
 
 function fmtPeople(n) {
@@ -265,25 +288,66 @@ function heightFor(ctx, iso3, base) {
   if (ctx.extrude && c && c.inView && v != null) {
     const [lo, hi] = ctx.data.range;
     const t = ctx.data.extrudeAbs ? Math.abs(v) / Math.max(Math.abs(lo), Math.abs(hi), 1e-9) : norm(ctx, v);
-    h += Math.max(0, Math.min(1, t)) * 0.09;
+    h += Math.max(0, Math.min(1, t)) * 0.035;
   }
-  if (ctx.hover === iso3) h += 0.025;
-  if (iso3 === ctx.selected) h += 0.04;
+  if (iso3 === ctx.selected) h += 0.018;
   return h;
 }
 
 // ---- layers --------------------------------------------------------------------
-// paint() runs on every hover, so it only touches colours and heights; the animated rings and
-// arcs are redrawn by drawLayers() when the year, a toggle or the selection changes.
+// Each country owns a lit (Phong) cap and wall material. Colours change by editing those materials
+// in place (paintColours), which is instant and needs no geometry work — so hovering stays smooth even
+// with the detailed outlines. paint() also resets heights and borders (year, selection, 3D toggle);
+// the animated rings and arcs are redrawn by drawLayers().
+function materialsFor(ctx, f) {
+  if (!f.__materials) {
+    const Phong = ctx.globe.globeMaterial().constructor;  // three.js MeshPhongMaterial, from the bundle
+    f.__materials = {
+      cap: new Phong({ side: 2, shininess: 22, specular: 0x2a2a2a }),
+      wall: new Phong({ side: 2, shininess: 8, specular: 0x111111 }),
+    };
+  }
+  return f.__materials;
+}
+
+function paintColours(ctx) {
+  for (const f of ctx.features) {
+    const m = materialsFor(ctx, f);
+    const base = colourFor(ctx, ctx.byIso.get(f.iso3));
+    const lit = f.iso3 === ctx.hover || f.iso3 === ctx.selected;
+    m.cap.color.set(base);
+    m.cap.emissive.set(lit ? base : "#000000");
+    m.cap.emissiveIntensity = f.iso3 === ctx.selected ? 0.45 : 0.3;
+    m.wall.color.set(shade(base, 0.45));
+  }
+  ctx.globe
+    .pointColor((c) => (c.iso3 === ctx.selected ? "#ffffff" : colourFor(ctx, c)))
+    .pointRadius((c) => (c.iso3 === ctx.selected || c.iso3 === ctx.hover ? 0.55 : 0.38));
+}
+
 function paint(ctx) {
   const g = ctx.globe;
   if (!g) return;
-  g.polygonCapColor((f) => colourFor(ctx, ctx.byIso.get(f.iso3)))
-    .polygonStrokeColor((f) => (f.iso3 === ctx.selected ? "#ffffff" : "rgba(0,0,0,0.9)"))
-    .polygonAltitude((f) => heightFor(ctx, f.iso3, 0.006));
-  g.pointColor((c) => (c.iso3 === ctx.selected ? "#ffffff" : colourFor(ctx, c)))
-    .pointAltitude((c) => heightFor(ctx, c.iso3, 0.01))
-    .pointRadius((c) => (c.iso3 === ctx.selected || c.iso3 === ctx.hover ? 0.75 : 0.5));
+  paintColours(ctx);
+  g.polygonStrokeColor((f) => (f.iso3 === ctx.selected ? "#ffffff" : "rgba(0,0,0,0.55)"))
+    .polygonAltitude((f) => heightFor(ctx, f.iso3, 0.004))
+    .pointAltitude((c) => heightFor(ctx, c.iso3, 0.008));
+}
+
+function useOutlines(ctx, features) {
+  // Swap in a set of country outlines (the detailed set arrives after the first draw)
+  ctx.features = features;
+  ctx.featureByIso = new Map(features.map((f) => [f.iso3, f]));
+  // States too small for the outlines (most islands; fewer with the detailed set) are drawn as dots
+  ctx.points = ctx.data.countries.filter((c) => !ctx.featureByIso.has(c.iso3) && c.lat != null && c.lng != null);
+  ctx.globe.polygonsData(features);
+}
+
+function followCamera(ctx) {
+  // Keep the sun just above and behind the viewer, so the side you look at is always lit
+  if (!ctx.sun) return;
+  const cam = ctx.globe.camera().position;
+  ctx.sun.position.set(cam.x, cam.y + cam.length() * 0.35, cam.z);
 }
 
 function drawLayers(ctx) {
@@ -513,35 +577,47 @@ function fitSize(root, ctx) {
 function build(root, ctx, Globe, features) {
   const el = root.querySelector(".rg-canvas");
   const lastView = lastViews[ctx.data.key];
+  const options = { animateIn: !lastView, rendererConfig: { antialias: true, alpha: true, powerPreference: "high-performance" } };
   let g;
-  try { g = new Globe(el, { animateIn: !lastView }); } catch (err) { g = Globe({ animateIn: !lastView })(el); }
+  try { g = new Globe(el, options); } catch (err) { g = Globe(options)(el); }
   ctx.globe = g;
-  ctx.features = features;
-  ctx.featureByIso = new Map(features.map((f) => [f.iso3, f]));
-  // States too small for the 1:110m outlines (Singapore, Bahrain, most islands) are drawn as dots
-  ctx.points = ctx.data.countries.filter((c) => !ctx.featureByIso.has(c.iso3) && c.lat != null && c.lng != null);
+  g.renderer().setPixelRatio(Math.min(2, window.devicePixelRatio || 1));  // crisp edges on high-DPI screens
   g.backgroundColor("rgba(0,0,0,0)")
-    .showAtmosphere(true).atmosphereColor("#3987e5").atmosphereAltitude(0.17)
-    .showGraticules(true)
-    .polygonsData(features)
-    .polygonSideColor(() => "rgba(255,255,255,0.06)")
-    .polygonsTransitionDuration(350)
+    .globeImageUrl(EARTH_IMAGE).bumpImageUrl(EARTH_BUMP)
+    .showAtmosphere(true).atmosphereColor("#6ea8ff").atmosphereAltitude(0.16)
+    .showGraticules(false)
+    .polygonCapCurvatureResolution(3)
+    .polygonCapMaterial((f) => materialsFor(ctx, f).cap)
+    .polygonSideMaterial((f) => materialsFor(ctx, f).wall)
+    .polygonsTransitionDuration(250)
     .polygonLabel((f) => tooltip(ctx, f.iso3, f.properties.ADMIN))
-    .onPolygonHover((f) => { ctx.hover = f ? f.iso3 : null; el.style.cursor = f ? "pointer" : "grab"; paint(ctx); })
+    .onPolygonHover((f) => { ctx.hover = f ? f.iso3 : null; el.style.cursor = f ? "pointer" : "grab"; paintColours(ctx); })
     .onPolygonClick((f) => select(root, ctx, f.iso3, true))
-    .pointLat("lat").pointLng("lng").pointsMerge(false).pointsTransitionDuration(350)
+    .pointLat("lat").pointLng("lng").pointsMerge(false).pointsTransitionDuration(250).pointResolution(16)
     .pointLabel((c) => tooltip(ctx, c.iso3, c.name))
-    .onPointHover((c) => { ctx.hover = c ? c.iso3 : null; el.style.cursor = c ? "pointer" : "grab"; paint(ctx); })
+    .onPointHover((c) => { ctx.hover = c ? c.iso3 : null; el.style.cursor = c ? "pointer" : "grab"; paintColours(ctx); })
     .onPointClick((c) => select(root, ctx, c.iso3, true))
     .onGlobeClick(() => select(root, ctx, null, false));
+  useOutlines(ctx, features);
+  // The Earth: night lights at full strength, deep-navy oceans, terrain relief from the bump map
   const material = g.globeMaterial();
-  material.color.set("#0a1a33");
-  if (material.emissive) material.emissive.set("#04101f");
-  material.shininess = 6;
+  material.color.set("#ffffff");
+  material.emissive.set("#04111f");
+  material.emissiveIntensity = 1;
+  material.shininess = 9;
+  material.specular.set("#0b1524");  // matte sea: a faint sheen, no washed-out glare up close
+  material.bumpScale = 5;
+  // Softer ambient light and a "sun" that follows the camera, so countries get depth and highlights
+  for (const light of typeof g.lights === "function" ? g.lights() : []) {
+    if (light.isAmbientLight) light.intensity = 0.8 * Math.PI;
+    if (light.isDirectionalLight) { light.intensity = 1.1 * Math.PI; ctx.sun = light; }
+  }
+  const tick = () => { if (!ctx.globe) return; followCamera(ctx); ctx.frame = requestAnimationFrame(tick); };
+  tick();
   const controls = g.controls();
   controls.autoRotate = ctx.spin;
   controls.autoRotateSpeed = 0.35;
-  controls.minDistance = 115;
+  controls.minDistance = 110;  // the 1:50m outlines hold up to about this close
   controls.maxDistance = 650;
   controls.zoomSpeed = 0.9;
   controls.addEventListener("start", () => stopSpin(root, ctx));
@@ -589,7 +665,7 @@ export default function (component) {
   } else if (!ctx.loading) {
     const status = root.querySelector(".rg-status");
     status.hidden = false;
-    ctx.loading = Promise.all([loadLibrary(), loadCountries()])
+    ctx.loading = Promise.all([loadLibrary(), loadCountries(COUNTRIES)])
       .then(([Globe, features]) => {
         build(root, ctx, Globe, features);
         status.hidden = true;
@@ -597,6 +673,16 @@ export default function (component) {
           const at = locate(ctx, ctx.selected);
           if (at) ctx.globe.pointOfView({ lat: at.lat, lng: at.lng, altitude: 1.7 }, 0);
         }
+        // Then swap in the detailed outlines; if they fail to download, the simple ones stay
+        loadCountries(COUNTRIES_DETAILED)
+          .then((detailed) => {
+            if (!ctx.globe) return;
+            useOutlines(ctx, detailed);
+            paint(ctx);
+            drawLayers(ctx);
+            renderPanel(root, ctx);
+          })
+          .catch(() => {});
       })
       .catch((err) => {
         ctx.loading = null;
@@ -609,6 +695,7 @@ export default function (component) {
       if (!root.isConnected && ctx.globe) {
         lastViews[ctx.data.key] = ctx.globe.pointOfView();
         if (ctx.timer) clearInterval(ctx.timer);
+        if (ctx.frame) cancelAnimationFrame(ctx.frame);
         if (ctx.resize) ctx.resize.disconnect();
         if (ctx.globe._destructor) ctx.globe._destructor();
         ctx.globe = null;
@@ -616,7 +703,9 @@ export default function (component) {
     }, 0);
   };
 }
-""".replace("__GLOBE_JS__", GLOBE_JS_URL).replace("__COUNTRIES__", COUNTRIES_URL)
+""".replace("__GLOBE_JS__", GLOBE_JS_URL).replace("__COUNTRIES_DETAILED__", COUNTRIES_DETAILED_URL) \
+    .replace("__COUNTRIES__", COUNTRIES_URL).replace("__EARTH_IMAGE__", EARTH_IMAGE_URL) \
+    .replace("__EARTH_BUMP__", EARTH_BUMP_URL)
 
 _component = st.components.v2.component("risk_globe", html=_HTML, css=_CSS, js=_JS, isolate_styles=False)
 
