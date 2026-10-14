@@ -1,0 +1,21 @@
+[theme]
+base = "dark"
+primaryColor = "#3987e5"
+backgroundColor = "#000000"
+secondaryBackgroundColor = "#141414"
+textColor = "#ececec"
+borderColor = "#2c2c2a"
+linkColor = "#74b1fe"
+font = "JetBrains Mono:https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap, monospace"
+headingFont = "JetBrains Mono:https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap, monospace"
+codeFont = "JetBrains Mono:https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap, monospace"
+
+[theme.sidebar]
+backgroundColor = "#0a0a0a"
+secondaryBackgroundColor = "#1a1a19"
+
+[client]
+toolbarMode = "viewer"
+
+[server]
+runOnSave = false

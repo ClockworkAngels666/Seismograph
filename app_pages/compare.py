@@ -1,0 +1,111 @@
+"""Compare up to six countries side by side."""
+
+import html
+
+import pandas as pd
+import streamlit as st
+
+from prm import charts, config, ui
+from prm.config import INDICATORS, MAX_COMPARE, PILLARS, WGI_DIMENSIONS
+
+core, year, values, scores = ui.load()
+hist = ui.history(core)
+table = ui.master_table(core, values, scores, hist).set_index("iso3")
+options, names = ui.country_options(core["countries"])
+
+st.title("Compare countries")
+st.caption(
+    f"Pick up to {MAX_COMPARE} economies, or use **➕ Add to compare** on any country profile. "
+    "Colours follow the order you pick them in."
+)
+
+# The widget's own state is dropped when you leave the page, so seed it from the saved list each visit
+if "compare_picked" not in st.session_state:
+    saved = [c for c in st.session_state.get(ui.COMPARE_LIST, []) if c in options]
+    fallback = [c for c in [ui.current_country(core["countries"]), "KEN", "ZAF", "ETH"] if c in options]
+    st.session_state["compare_picked"] = saved or list(dict.fromkeys(fallback))[:3]
+picked = st.multiselect(
+    "Countries", options, key="compare_picked", format_func=lambda i: names.get(i, i),
+    max_selections=MAX_COMPARE, placeholder="Choose countries",
+)
+st.session_state[ui.COMPARE_LIST] = list(picked)
+if not picked:
+    st.info("Choose at least one country.")
+    st.stop()
+
+sel = table.loc[picked]
+
+# --- Scorecards -----------------------------------------------------------------
+cols = st.columns(len(picked))
+for col, iso3 in zip(cols, picked):
+    r = sel.loc[iso3]
+    with col:
+        with st.container(border=True):
+            st.markdown(f"{ui.flag_img(r['iso2'])}<b>{html.escape(names[iso3])}</b>", unsafe_allow_html=True)
+            st.markdown(ui.tier_badge(r["tier"]), unsafe_allow_html=True)
+            score = "—" if pd.isna(r["composite"]) else f"{r['composite']:.0f}"
+            rank = "—" if pd.isna(r["rank"]) else f"#{int(r['rank'])}"
+            st.markdown(f"Score **{score}** · Rank **{rank}** · Flags **{int(r['flags'])}**  \n"
+                        f"1-yr change **{r.get('trend', '—')}**")
+
+st.subheader("On the globe")
+ui.globe_panel(table=table.reset_index(), hist=hist, flows=core.get("flows"), metric="composite",
+               metric_label="Composite", key="cmp_globe", in_view=set(picked), height=480,
+               layers={"spin": True, "flows": False, "conflict": False})
+st.caption("Your countries in colour, everything else dimmed. Click one for its index; ▶ replays since "
+           f"{config.HISTORY_START}.")
+
+st.subheader("Risk index over time")
+st.plotly_chart(
+    charts.compare_lines({"composite": hist.rename(columns={"composite": "value"})}, "composite", picked, names,
+                         "Composite risk score (0–100)"),
+    config={"displayModeBar": False},
+)
+st.caption(f"The index recomputed for every year since {config.HISTORY_START} (relative to all countries that year). "
+           "Higher = riskier.")
+
+left, right = st.columns([1, 1.2])
+with left:
+    st.subheader("Pillar profile")
+    st.plotly_chart(charts.radar(sel[[p.key for p in PILLARS]], names), config={"displayModeBar": False})
+    st.caption("Further from the centre = higher risk.")
+with right:
+    st.subheader("Governance over time")
+    dim = st.selectbox("WGI dimension", list(WGI_DIMENSIONS), index=1, format_func=WGI_DIMENSIONS.get)
+    st.plotly_chart(
+        charts.compare_lines(core["series"], f"wgi_{dim}", picked, names, "WGI score (0–100, higher = better)"),
+        config={"displayModeBar": False},
+    )
+
+# --- Indicator table -------------------------------------------------------------
+st.subheader("Indicators")
+rows = []
+for ind in INDICATORS:
+    entry = {"Pillar": config.PILLAR_BY_KEY[ind.pillar].short, "Indicator": f"{ind.short} ({ind.unit})"}
+    for iso3 in picked:
+        entry[names[iso3]] = ind.fmt(values.loc[iso3].get(ind.key))
+    rows.append(entry)
+for p in PILLARS:
+    entry = {"Pillar": "Score", "Indicator": f"{p.label} (0–100 risk)"}
+    for iso3 in picked:
+        val = sel.loc[iso3, p.key]
+        entry[names[iso3]] = "—" if pd.isna(val) else f"{val:.0f}"
+    rows.append(entry)
+st.dataframe(pd.DataFrame(rows), hide_index=True, height=min(38 * (len(rows) + 1), 820))
+
+# --- Economy over time ----------------------------------------------------------------
+st.subheader("Economic trajectory")
+econ = {
+    "gdp_growth": "Real GDP growth (%)",
+    "inflation": "Inflation (%)",
+    "gov_debt": "Public debt (% of GDP)",
+    "current_account": "Current account (% of GDP)",
+}
+key = st.selectbox("Indicator", list(econ), format_func=econ.get)
+st.plotly_chart(
+    charts.compare_lines(core["series"], key, picked, names, econ[key], start_year=year - 12, end_year=year + 5),
+    config={"displayModeBar": False},
+)
+st.caption(f"IMF World Economic Outlook. Values after {year - 1} are projections.")
+
+ui.footer()

@@ -1,0 +1,269 @@
+{
+  "created": "2026-10-14",
+  "series": {
+    "battle_deaths": {
+      "provider": "WB",
+      "code": "VC.BTL.DETH",
+      "last_updated": "2026-10-08",
+      "edition": null,
+      "rows": 1171,
+      "saved": "2026-10-14"
+    },
+    "current_account": {
+      "provider": "IMF",
+      "code": "BCA_NGDPD",
+      "last_updated": null,
+      "edition": "World Economic Outlook (October 2026)",
+      "rows": 10555,
+      "saved": "2026-10-14"
+    },
+    "displaced": {
+      "provider": "UNHCR",
+      "code": "population",
+      "last_updated": "2025",
+      "edition": null,
+      "rows": 2613,
+      "saved": "2026-10-14"
+    },
+    "fiscal_balance": {
+      "provider": "IMF",
+      "code": "GGXCNL_NGDP",
+      "last_updated": null,
+      "edition": "World Economic Outlook (October 2026)",
+      "rows": 8813,
+      "saved": "2026-10-14"
+    },
+    "gdp_growth": {
+      "provider": "IMF",
+      "code": "NGDP_RPCH",
+      "last_updated": null,
+      "edition": "World Economic Outlook (October 2026)",
+      "rows": 10921,
+      "saved": "2026-10-14"
+    },
+    "gdppc": {
+      "provider": "IMF",
+      "code": "NGDPDPC",
+      "last_updated": null,
+      "edition": "World Economic Outlook (October 2026)",
+      "rows": 10834,
+      "saved": "2026-10-14"
+    },
+    "gov_debt": {
+      "provider": "IMF",
+      "code": "GGXWDG_NGDP",
+      "last_updated": null,
+      "edition": "World Economic Outlook (October 2026)",
+      "rows": 8098,
+      "saved": "2026-10-14"
+    },
+    "homicide": {
+      "provider": "WB",
+      "code": "VC.IHR.PSRC.P5",
+      "last_updated": "2026-10-08",
+      "edition": null,
+      "rows": 3801,
+      "saved": "2026-10-14"
+    },
+    "inflation": {
+      "provider": "IMF",
+      "code": "PCPIPCH",
+      "last_updated": null,
+      "edition": "World Economic Outlook (October 2026)",
+      "rows": 10809,
+      "saved": "2026-10-14"
+    },
+    "pop": {
+      "provider": "WB",
+      "code": "SP.POP.TOTL",
+      "last_updated": "2026-10-08",
+      "edition": null,
+      "rows": 7830,
+      "saved": "2026-10-14"
+    },
+    "pop_imf": {
+      "provider": "IMF",
+      "code": "LP",
+      "last_updated": null,
+      "edition": "World Economic Outlook (October 2026)",
+      "rows": 10973,
+      "saved": "2026-10-14"
+    },
+    "reserves_months": {
+      "provider": "WB",
+      "code": "FI.RES.TOTL.MO",
+      "last_updated": "2026-10-08",
+      "edition": null,
+      "rows": 5941,
+      "saved": "2026-10-14"
+    },
+    "unemployment": {
+      "provider": "WB",
+      "code": "SL.UEM.TOTL.ZS",
+      "last_updated": "2026-10-08",
+      "edition": null,
+      "rows": 6916,
+      "saved": "2026-10-14"
+    },
+    "unemployment_imf": {
+      "provider": "IMF",
+      "code": "LUR",
+      "last_updated": null,
+      "edition": "World Economic Outlook (October 2026)",
+      "rows": 5161,
+      "saved": "2026-10-14"
+    },
+    "wgi_cc": {
+      "provider": "WB",
+      "code": "GOV_WGI_CC.SC",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5435,
+      "saved": "2026-10-14"
+    },
+    "wgi_cc_lb": {
+      "provider": "WB",
+      "code": "GOV_WGI_CC.SC_LB",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5435,
+      "saved": "2026-10-14"
+    },
+    "wgi_cc_ub": {
+      "provider": "WB",
+      "code": "GOV_WGI_CC.SC_UB",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5435,
+      "saved": "2026-10-14"
+    },
+    "wgi_ge": {
+      "provider": "WB",
+      "code": "GOV_WGI_GE.SC",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5400,
+      "saved": "2026-10-14"
+    },
+    "wgi_ge_lb": {
+      "provider": "WB",
+      "code": "GOV_WGI_GE.SC_LB",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5400,
+      "saved": "2026-10-14"
+    },
+    "wgi_ge_ub": {
+      "provider": "WB",
+      "code": "GOV_WGI_GE.SC_UB",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5400,
+      "saved": "2026-10-14"
+    },
+    "wgi_pv": {
+      "provider": "WB",
+      "code": "GOV_WGI_PV.SC",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5489,
+      "saved": "2026-10-14"
+    },
+    "wgi_pv_lb": {
+      "provider": "WB",
+      "code": "GOV_WGI_PV.SC_LB",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5489,
+      "saved": "2026-10-14"
+    },
+    "wgi_pv_ub": {
+      "provider": "WB",
+      "code": "GOV_WGI_PV.SC_UB",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5489,
+      "saved": "2026-10-14"
+    },
+    "wgi_rl": {
+      "provider": "WB",
+      "code": "GOV_WGI_RL.SC",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5530,
+      "saved": "2026-10-14"
+    },
+    "wgi_rl_lb": {
+      "provider": "WB",
+      "code": "GOV_WGI_RL.SC_LB",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5530,
+      "saved": "2026-10-14"
+    },
+    "wgi_rl_ub": {
+      "provider": "WB",
+      "code": "GOV_WGI_RL.SC_UB",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5530,
+      "saved": "2026-10-14"
+    },
+    "wgi_rq": {
+      "provider": "WB",
+      "code": "GOV_WGI_RQ.SC",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5401,
+      "saved": "2026-10-14"
+    },
+    "wgi_rq_lb": {
+      "provider": "WB",
+      "code": "GOV_WGI_RQ.SC_LB",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5401,
+      "saved": "2026-10-14"
+    },
+    "wgi_rq_ub": {
+      "provider": "WB",
+      "code": "GOV_WGI_RQ.SC_UB",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5401,
+      "saved": "2026-10-14"
+    },
+    "wgi_va": {
+      "provider": "WB",
+      "code": "GOV_WGI_VA.SC",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5515,
+      "saved": "2026-10-14"
+    },
+    "wgi_va_lb": {
+      "provider": "WB",
+      "code": "GOV_WGI_VA.SC_LB",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5515,
+      "saved": "2026-10-14"
+    },
+    "wgi_va_ub": {
+      "provider": "WB",
+      "code": "GOV_WGI_VA.SC_UB",
+      "last_updated": "2026-09-25",
+      "edition": null,
+      "rows": 5515,
+      "saved": "2026-10-14"
+    },
+    "youth_unemployment": {
+      "provider": "WB",
+      "code": "SL.UEM.1524.ZS",
+      "last_updated": "2026-10-08",
+      "edition": null,
+      "rows": 6916,
+      "saved": "2026-10-14"
+    }
+  }
+}
