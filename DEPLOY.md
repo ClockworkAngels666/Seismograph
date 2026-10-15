@@ -1,51 +1,49 @@
-# Deploying Seismographic (no coding needed)
+# Publishing Seismographic (no coding needed)
 
-Total time: about 20 minutes. You need a free GitHub account and a free Streamlit Community Cloud account.
+Seismographic is published on **Hugging Face Spaces**: free, no "hosted by" badge on the app, and it updates by
+itself every time the GitHub repository changes. Total time: about 10 minutes, once.
 
-## 1. Put your name on it (2 minutes)
+## 1. Create a Hugging Face account and a token (3 minutes)
 
-Open `prm/config.py` in any text editor (or edit it on GitHub after uploading — click the file, then the pencil
-icon). Near the top, change:
+1. Sign up at [huggingface.co/join](https://huggingface.co/join) and confirm your e-mail.
+2. Open [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) → **Create new token**.
+3. Choose the token type **Write**, name it `seismographic-publish`, click **Create token** and copy it.
+   Keep it private: anyone with it can change your Spaces.
 
-```python
-AUTHOR = "Your Name"
+## 2. Connect GitHub to Hugging Face (2 minutes)
+
+GitHub publishes the app for you, so it needs the token (stored encrypted, never shown again) and the Space's name.
+
+In a terminal (it asks you to paste the token):
+
+```bash
+gh secret set HF_TOKEN -R ClockworkAngels666/Seismographic
 ```
 
-Also replace "Your Name", the LinkedIn link and the e-mail address at the bottom of `README.md`.
+```bash
+gh variable set HF_SPACE -R ClockworkAngels666/Seismographic --body "YOUR-HF-USERNAME/Seismographic"
+```
 
-## 2. Put the code on GitHub (5 minutes)
+Or on github.com: the repository's **Settings → Secrets and variables → Actions**. Add a *secret* `HF_TOKEN`
+(the token), then on the *Variables* tab a variable `HF_SPACE` (`YOUR-HF-USERNAME/Seismographic`).
 
-1. Sign in at [github.com](https://github.com), click **+** (top right) → **New repository**.
-2. Name it `Seismographic`, choose **Public**, leave everything else unticked, click **Create repository**.
-3. On the next page click **uploading an existing file**.
-4. Unzip the project on your computer, open the project folder, select **everything inside it**
-   and drag it onto the GitHub page. Keep the folder structure — drag the folders, not just the files.
-5. Scroll down and click **Commit changes**.
+## 3. Publish (5 minutes, mostly waiting)
 
-**Hidden folders.** Two folders start with a dot: `.streamlit` (colours) and `.github` (monthly data backup).
-Mac's Finder hides them — press **Cmd + Shift + .** in the folder window to show them before selecting everything.
-On Windows, tick **View → Hidden items** in File Explorer. If they don't upload, the app still works; you can add
-them later with **Add file → Create new file** and type the path, e.g. `.streamlit/config.toml`, then paste the contents.
+1. On GitHub open the **Actions** tab → **Publish to Hugging Face** → **Run workflow**.
+   It creates the Space the first time and uploads the app. After this, every push to `main` publishes by itself.
+2. Open `huggingface.co/spaces/YOUR-HF-USERNAME/Seismographic`. It shows **Building** for 3–5 minutes, then
+   **Running**.
+3. Share the direct address, which shows the app full screen with nothing around it:
+   `https://YOUR-HF-USERNAME-seismographic.hf.space` (your username in lower case).
 
-## 3. Deploy on Streamlit Community Cloud (5 minutes)
+The `Dockerfile` in the repository also runs the app on Render, Fly.io or any other Docker host.
 
-1. Go to [share.streamlit.io](https://share.streamlit.io) and sign in with GitHub. Allow Streamlit to access your
-   repositories when asked.
-2. Click **Create app** → deploy from a GitHub repository.
-3. Choose your repository, branch `main`, main file path `streamlit_app.py`.
-4. Optional but recommended: set a custom **App URL** such as `seismographic-yourname`.
-5. Click **Deploy**. The first build takes a few minutes. Pages then open instantly from the saved snapshot and
-   switch to live data by themselves about a minute later.
+## 4. Monthly data backup
 
-Copy the app's address and paste it into the top of `README.md` on GitHub.
-
-## 4. Turn on the monthly data backup (2 minutes)
-
-1. In your repository, open the **Actions** tab. If asked, click **I understand my workflows, go ahead and enable them**.
-2. Click **Refresh data snapshot** → **Run workflow**. After a minute or two a `data/snapshot` folder appears in
-   your repository. From now on it refreshes on the 3rd of every month.
-3. If the run fails at "Commit the snapshot", go to **Settings → Actions → General → Workflow permissions**, pick
-   **Read and write permissions**, save, and run it again.
+The **Refresh data snapshot** action saves a copy of all data on the 3rd of every month, so pages open instantly
+and keep working if a source is down. The Space republishes after each refresh. If a run fails at "Commit the
+snapshot", go to **Settings → Actions → General → Workflow permissions**, pick **Read and write permissions**,
+save, and run it again.
 
 ## 5. Make it yours
 
@@ -55,16 +53,18 @@ Copy the app's address and paste it into the top of `README.md` on GitHub.
   (pencil icon → paste the line at the bottom → *Commit changes*).
 * **Change the model**: weights, thresholds and indicators are all in `prm/config.py`.
 
-Every change you commit on GitHub appears in the live app within a few minutes.
+Every change you commit on GitHub appears in the live app a few minutes later.
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
-| "This app has gone to sleep" | Free apps sleep after a period without visitors. Click the button to wake it; open it yourself before sending the link to anyone. |
+| The Space says it is sleeping | Free Spaces sleep after about two days without visitors. Opening it wakes it in under a minute; open it yourself before sending the link to anyone. |
+| The Action fails with "401" or "403" | The token is missing or is not a **Write** token. Create a new one and set `HF_TOKEN` again. |
+| The Action is skipped | The `HF_SPACE` variable is not set (step 2). |
+| The Space shows "Build error" or "Runtime error" | Open the Space's **Logs** tab to see why. |
 | A yellow banner says a source is unavailable | One of the APIs is down; scores use the other indicators. Click **↻ Refresh data** in the sidebar later. |
 | News says it is unavailable | Every news source (Bing, Google, GDELT) refused at once — rare. It retries by itself within 10 minutes. |
-| The app shows an error on start-up | In Streamlit Cloud, open **Manage app** (bottom right) to see the logs, and check that `requirements.txt` was uploaded. |
 | An assessment doesn't appear | Check the file name is the three-letter code (`NGA.md`), it is inside `assessments/`, and the top block starts and ends with `---`. |
 
 ## Putting it on your CV

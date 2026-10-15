@@ -1,0 +1,8 @@
+.git
+.github
+.devcontainer
+.venv
+__pycache__
+*.pyc
+.streamlit/secrets.toml
+deploy

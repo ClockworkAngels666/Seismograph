@@ -1,0 +1,50 @@
+# Publishes the app to its Hugging Face Space on every push to main and after each monthly data refresh.
+# Needs, in the GitHub repo settings: a secret HF_TOKEN (a Hugging Face "write" token) and a variable
+# HF_SPACE (e.g. yourname/Seismographic). The Space is created the first time if it does not exist.
+name: Publish to Hugging Face
+
+on:
+  push:
+    branches: [main]
+  workflow_run:
+    workflows: ["Refresh data snapshot"]
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  group: publish-huggingface
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    if: ${{ vars.HF_SPACE != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Upload the app to the Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          pip install --quiet "huggingface_hub>=0.30"
+          cp deploy/huggingface/README.md README.md  # the Space's settings live in its README header
+          python - <<'EOF'
+          import os
+          from huggingface_hub import HfApi
+
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          space = os.environ["HF_SPACE"]
+          api.create_repo(space, repo_type="space", space_sdk="docker", exist_ok=True)
+          api.upload_folder(
+              repo_id=space, repo_type="space", folder_path=".",
+              commit_message=f"Publish {os.environ['GITHUB_SHA'][:7]}",
+              ignore_patterns=[".git/*", ".github/*", ".devcontainer/*", "deploy/*", "DEPLOY.md", "__pycache__/*"],
+              delete_patterns=["*.py", "*.csv", "*.md", "*.svg", "*.toml", "*.txt", "*.json", "Dockerfile"],
+          )
+          print(f"Published to https://huggingface.co/spaces/{space}")
+          EOF

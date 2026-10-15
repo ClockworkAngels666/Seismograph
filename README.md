@@ -101,7 +101,8 @@ pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
 
-Deployment on Streamlit Community Cloud is described step by step in [DEPLOY.md](DEPLOY.md).
+Publishing on Hugging Face Spaces (free, updates itself on every push) is described step by step in
+[DEPLOY.md](DEPLOY.md). The `Dockerfile` also runs it on Render, Fly.io or any Docker host.
 
 ## Limitations
 
