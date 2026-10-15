@@ -1,4 +1,4 @@
-"""Data fetchers for the public APIs Seismograph uses.
+"""Data fetchers for the public APIs Seismographic uses.
 
 This module has no Streamlit dependency, so the same functions power the app
 (through the cached loaders in data.py) and the snapshot script in scripts/.
@@ -22,7 +22,7 @@ import requests
 from . import config
 
 TIMEOUT = 45
-HEADERS = {"User-Agent": "seismograph/1.0 (open-source student project)"}
+HEADERS = {"User-Agent": "seismographic/1.0 (open-source student project)"}
 # The IMF's CDN (Akamai) answers 403 to custom User-Agent strings, so IMF calls keep the requests default
 IMF_HEADERS: dict[str, str] = {}
 

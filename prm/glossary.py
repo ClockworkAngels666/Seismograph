@@ -1,4 +1,4 @@
-"""Glossary: every term, abbreviation and symbol used in Seismograph, in plain language.
+"""Glossary: every term, abbreviation and symbol used in Seismographic, in plain language.
 
 The 17 indicators are added from config.INDICATORS, so the glossary always matches the model.
 """

@@ -1,4 +1,4 @@
-"""Sources & citations: every dataset, definition and feed behind Seismograph, with links and update dates."""
+"""Sources & citations: every dataset, definition and feed behind Seismographic, with links and update dates."""
 
 import datetime as dt
 import html
@@ -13,9 +13,9 @@ core, year, values, scores = ui.load()
 meta = core["meta"]
 
 ui.hero("🔎 Sources & citations",
-        "Every number, map, headline and video in Seismograph, traced back to the organisation that published it.")
+        "Every number, map, headline and video in Seismographic, traced back to the organisation that published it.")
 st.markdown(
-    "Seismograph does not collect data itself. Everything comes from international organisations, academic "
+    "Seismographic does not collect data itself. Everything comes from international organisations, academic "
     "research centres and the broadcasters themselves, and every chart in the tool names its source underneath. "
     "This page lists them all, with links to the originals so you can check any figure."
 )
@@ -74,7 +74,7 @@ def status(keys: list[str]) -> str:
 
 # --- The index ----------------------------------------------------------------------------------------------
 st.header("The data behind the index")
-st.caption("The five datasets the 17 indicators come from. The risk scores are Seismograph's own calculation on "
+st.caption("The five datasets the 17 indicators come from. The risk scores are Seismographic's own calculation on "
            "top of them, explained on the Methodology page.")
 DERIVED = {"battle_deaths_100k": "battle_deaths", "displaced_share": "displaced"}
 index_cards = []
@@ -124,10 +124,10 @@ st.caption("IMF figures for the current year are estimates and are revised twice
 # --- Thresholds -------------------------------------------------------------------------------------------
 st.header("Where the warning thresholds come from")
 st.caption("Red flags are fixed lines, not relative scores. Some come straight from a definition or a well-known "
-           "study; others are Seismograph's own lines, set out here so you can judge them.")
+           "study; others are Seismographic's own lines, set out here so you can judge them.")
 flag_rows = []
 for key, op, threshold, severity, label in config.RED_FLAGS:
-    source, basis = config.FLAG_BASIS.get((key, threshold), (None, "Seismograph line"))
+    source, basis = config.FLAG_BASIS.get((key, threshold), (None, "Seismographic line"))
     flag_rows.append({"Severity": f"{config.SEVERITY_ICON[severity]} {config.SEVERITY_LABEL[severity]}",
                       "Red flag": label, "Basis": basis,
                       "Reference": ui.source_label(source) if source else "—",
@@ -135,17 +135,17 @@ for key, op, threshold, severity, label in config.RED_FLAGS:
 flag_rows.append({"Severity": f"{config.SEVERITY_ICON['warning']} {config.SEVERITY_LABEL['warning']}",
                   "Red flag": f"Political stability deteriorating (WGI down {config.WGI_TREND_THRESHOLD:g}+ points in "
                               f"{config.WGI_TREND_YEARS} years)",
-                  "Basis": "Seismograph line, chosen to be larger than most year-to-year noise in the WGI",
+                  "Basis": "Seismographic line, chosen to be larger than most year-to-year noise in the WGI",
                   "Reference": ui.source_label("wgi_method"), "Link": SOURCES["wgi_method"].url})
 st.dataframe(pd.DataFrame(flag_rows), hide_index=True,
              column_config={"Red flag": st.column_config.TextColumn(width="large"),
                             "Basis": st.column_config.TextColumn(width="large"),
                             "Link": st.column_config.LinkColumn("Link", display_text="Open ↗")})
-st.caption("The risk tiers (Low to Severe) are equal 20-point bands of the composite score, a Seismograph convention.")
+st.caption("The risk tiers (Low to Severe) are equal 20-point bands of the composite score, a Seismographic convention.")
 
 # --- Cross-checks -----------------------------------------------------------------------------------------
 st.header("Cross-check the scores")
-st.caption("Respected independent indices measuring similar things. They are not used in the score; if Seismograph "
+st.caption("Respected independent indices measuring similar things. They are not used in the score; if Seismographic "
            "and they disagree about a country, find out why before you rely on either.")
 for pillar_key, keys in config.CROSS_CHECKS.items():
     if pillar_key == "composite":
@@ -204,7 +204,7 @@ st.caption("Headlines in the news feeds link to the original publisher; Bing New
 st.header("Status of the data loaded now")
 ui.data_status(core)
 
-st.header("How to cite Seismograph")
+st.header("How to cite Seismographic")
 parts = config.AUTHOR.split()
 author = f"{parts[-1]}, {' '.join(p[0] + '.' for p in parts[:-1])}"
 edition = (meta.get("gdp_growth", {}).get("edition") or "World Economic Outlook").replace(" (", ", ").rstrip(")")

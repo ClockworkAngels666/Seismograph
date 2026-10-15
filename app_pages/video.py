@@ -72,7 +72,7 @@ else:
     ui.video_gallery(shown, key=f"gallery_{kind}_{about}", limit=12)
 st.caption(
     "Videos come from each channel's public feed (its 15 most recent uploads), refreshed every 15 minutes. They are "
-    "the broadcasters' and institutions' own reporting and opinions, not Seismograph's."
+    "the broadcasters' and institutions' own reporting and opinions, not Seismographic's."
 )
 ui.cite("youtube")
 st.page_link(ui.SOURCES_PAGE, label="Who runs each channel: ownership and location", icon=":material/verified:")

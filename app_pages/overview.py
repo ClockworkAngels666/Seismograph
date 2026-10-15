@@ -268,7 +268,7 @@ if event and event.selection.rows:
 st.download_button(
     "Download this table (CSV)",
     ranking.drop(columns=["iso3", "flag"]).to_csv(index=False).encode("utf-8"),
-    file_name=f"seismograph_risk_index_{year}.csv",
+    file_name=f"seismographic_risk_index_{year}.csv",
     mime="text/csv",
 )
 ui.cite("index", "wb_countries", "flags")

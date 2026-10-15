@@ -1,4 +1,4 @@
-# Deploying Seismograph (no coding needed)
+# Deploying Seismographic (no coding needed)
 
 Total time: about 20 minutes. You need a free GitHub account and a free Streamlit Community Cloud account.
 
@@ -16,7 +16,7 @@ Also replace "Your Name", the LinkedIn link and the e-mail address at the bottom
 ## 2. Put the code on GitHub (5 minutes)
 
 1. Sign in at [github.com](https://github.com), click **+** (top right) → **New repository**.
-2. Name it `seismograph`, choose **Public**, leave everything else unticked, click **Create repository**.
+2. Name it `Seismographic`, choose **Public**, leave everything else unticked, click **Create repository**.
 3. On the next page click **uploading an existing file**.
 4. Unzip the project on your computer, open the project folder, select **everything inside it**
    and drag it onto the GitHub page. Keep the folder structure — drag the folders, not just the files.
@@ -33,7 +33,7 @@ them later with **Add file → Create new file** and type the path, e.g. `.strea
    repositories when asked.
 2. Click **Create app** → deploy from a GitHub repository.
 3. Choose your repository, branch `main`, main file path `streamlit_app.py`.
-4. Optional but recommended: set a custom **App URL** such as `seismograph-yourname`.
+4. Optional but recommended: set a custom **App URL** such as `seismographic-yourname`.
 5. Click **Deploy**. The first build takes a few minutes. Pages then open instantly from the saved snapshot and
    switch to live data by themselves about a minute later.
 
@@ -69,7 +69,7 @@ Every change you commit on GitHub appears in the live app within a few minutes.
 
 ## Putting it on your CV
 
-> **Seismograph** — Designed and launched an open-source political-risk dashboard scoring around 200 economies
+> **Seismographic** — Designed and launched an open-source political-risk dashboard scoring around 200 economies
 > on 17 indicators across four pillars, using live World Bank, IMF, UNHCR and UCDP data; authored quarterly
 > risk assessments with probabilistic forecasts. *(link)*
 

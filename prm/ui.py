@@ -121,6 +121,10 @@ def _wrap(key: str) -> str:
     return f'[data-testid="stLayoutWrapper"]:has(> .st-key-{key})'
 
 
+_SEARCH_ICON = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E"
+                "%3Cpath d='M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 "
+                "184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760"
+                "q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z'/%3E%3C/svg%3E")  # Material "search"; encoded, since a raw < in a style tag gets it stripped
 _ON = '[class*="st-key-sg_tab_on"] a'
 DOCK_CSS = f"""
 [data-testid="stMainBlockContainer"] {{ padding-bottom: 8.5rem !important; }}
@@ -132,7 +136,7 @@ DOCK_CSS = f"""
   gap: 8px 14px !important; align-items: center !important; justify-content: space-between !important;
   transition: left .25s ease;
 }}
-.st-key-sg_dock::before {{  /* the seismograph trace along the top edge */
+.st-key-sg_dock::before {{  /* the seismographic trace along the top edge */
   content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 1px;
   background: linear-gradient(90deg, transparent, #3987e5 20%, {ACCENT} 80%, transparent);
 }}
@@ -146,18 +150,18 @@ DOCK_CSS = f"""
   outline-offset: -2px; }}
 
 /* readout: the tracked country (shown first, rendered last so the tabs never wait for it) */
-{_wrap("sg_read_on")}, {_wrap("sg_read_off")} {{ order: -1; flex: 1 1 260px !important; max-width: 440px; min-width: 0; }}
-[class*="st-key-sg_read_o"] {{ position: relative; background: #141414; border: 1px solid #2c2c2a;
-  border-left: 3px solid var(--sg-c, #898781); border-radius: 8px; padding: 6px 10px !important; }}
-[class*="st-key-sg_read_o"]:hover {{ background: #1a1a19; }}
-.st-key-sg_read_on {{ border-color: {ACCENT}88; border-left-color: var(--sg-c, #898781); }}
-[class*="st-key-sg_read_o"] {{ overflow: visible !important; min-height: 46px; }}
-[class*="st-key-sg_read_o"] [data-testid="stMarkdownContainer"] {{ margin-bottom: 0 !important; }}
-[class*="st-key-sg_read_o"] > [data-testid="stElementContainer"] {{ flex: 1 1 auto !important; min-width: 0; }}
+{_wrap("sg_read")} {{ order: -1; flex: 1 1 260px !important; max-width: 440px; min-width: 0; }}
+.st-key-sg_read {{ position: relative; background: #141414; border: 1px solid #2c2c2a; border-radius: 8px;
+  padding: 6px 10px 6px 8px !important; overflow: visible !important; min-height: 46px; }}
+.st-key-sg_read:hover {{ background: #1a1a19; }}
+.st-key-sg_read:has(.sg-read.on) {{ border-color: {ACCENT}88; }}
+.st-key-sg_read [data-testid="stMarkdownContainer"] {{ margin-bottom: 0 !important; }}
+.st-key-sg_read > [data-testid="stElementContainer"] {{ flex: 1 1 auto !important; min-width: 0; }}
 .st-key-sg_read_link, .st-key-sg_read_link * {{ position: static !important; }}
 .st-key-sg_read_link a {{ position: absolute !important; inset: 0; opacity: 0; z-index: 1; }}
 {_wrap("sg_read_link")} {{ position: absolute !important; inset: 0; }}
 .sg-read {{ display: flex; align-items: center; gap: 10px; min-width: 0; width: 100%; }}
+.sg-tier {{ width: 3px; align-self: stretch; min-height: 30px; border-radius: 2px; background: var(--sg-c); flex: none; }}
 .sg-read img {{ width: 26px; height: 19px; object-fit: cover; border-radius: 3px; flex: none;
   box-shadow: 0 0 0 1px rgba(255,255,255,0.14); }}
 .sg-read-text {{ min-width: 0; flex: 1; line-height: 1.25; }}
@@ -185,7 +189,12 @@ DOCK_CSS = f"""
   margin: 0 !important; white-space: nowrap; line-height: 1.2 !important; }}
 .st-key-sg_tabs a span, .st-key-sg_tabs a p, .st-key-sg_tabs button p, .st-key-sg_tabs button span {{ color: #8f8e87 !important; }}
 .st-key-sg_tabs [data-testid="stIconMaterial"] {{ font-size: 1.3rem !important; }}
-.st-key-sg_tabs button [aria-hidden="true"] {{ display: none !important; }}
+.st-key-sg_tabs button [aria-hidden="true"], .st-key-sg_tabs button [data-testid="stIconMaterial"],
+.st-key-sg_tabs button span:has(> [data-testid="stIconMaterial"]) {{ display: none !important; }}
+.st-key-sg_tabs button::before {{ content: ""; width: 1.3rem; height: 1.3rem; flex: none; background: #8f8e87;
+  -webkit-mask: url("{_SEARCH_ICON}") center / contain no-repeat; mask: url("{_SEARCH_ICON}") center / contain no-repeat; }}
+.st-key-sg_tabs button[aria-expanded="true"]::before {{ background: {ACCENT}; }}
+.st-key-sg_tabs button {{ padding-top: 4px !important; }}  /* drawn icon is a touch shorter than the font icons */
 .st-key-sg_tabs button span[data-has-shortcut] {{ display: flex !important; flex-direction: column; align-items: center;
   gap: 2px; }}
 /* active tab: coral text and a short needle line on top */
@@ -205,7 +214,7 @@ DOCK_CSS = f"""
 
 /* narrow screens: the readout on top, the tabs spread across a row underneath */
 @container sgdock (max-width: 640px) {{
-  {_wrap("sg_read_on")}, {_wrap("sg_read_off")} {{ flex: 1 1 100% !important; max-width: none; }}
+  {_wrap("sg_read")} {{ flex: 1 1 100% !important; max-width: none; }}
   {_wrap("sg_tabs")} {{ flex: 1 1 100% !important; }}
   .st-key-sg_tabs > [data-testid="stLayoutWrapper"] {{ flex: 1 1 0 !important; }}
   .st-key-sg_tabs a, .st-key-sg_tabs button {{ height: 50px; }}
@@ -238,17 +247,17 @@ def _sparkline(values: pd.Series, color: str) -> str:
             f'fill="{color}"/></svg>')
 
 
-def _readout(on_country_page: bool) -> None:
+def _readout(current_url_path: str) -> None:
     """The tracked country: flag, score, tier, change and its risk since 2015. Tap to open it."""
     try:
         core = data.load_core()
         scores = data.get_scores(core, data.analysis_year(), weights_tuple(), core["version"])
         hist = history(core)
+        countries = core["countries"]
+        iso3 = current_country(countries)
+        row = countries.set_index("iso3").loc[iso3]
     except Exception:  # the dock is a convenience; never let it break a page
         return
-    countries = core["countries"]
-    iso3 = current_country(countries)
-    row = countries.set_index("iso3").loc[iso3]
     score = scores["composite"].get(iso3) if iso3 in scores.index else None
     tier = scores["tier"].get(iso3) if iso3 in scores.index else None
     color = config.TIER_COLORS.get(tier, "#898781")
@@ -261,11 +270,11 @@ def _readout(on_country_page: bool) -> None:
         trend = "" if delta is None or pd.isna(delta) else f" · {trend_label(delta)}"
         meta = f"<b>{score:.0f}</b> · {html.escape(tier)}{trend}"
     flag = config.flag_url(row["iso2"])
-    st.html(f"<style>.st-key-sg_read_on, .st-key-sg_read_off {{ --sg-c: {color}; }}</style>")
-    with st.container(key=f"sg_read_{'on' if on_country_page else 'off'}", horizontal=True,
-                      vertical_alignment="center", wrap=False):
+    state = " on" if current_url_path == "country" else ""
+    with st.container(key="sg_read", horizontal=True, vertical_alignment="center", wrap=False):
         st.markdown(
-            f'<div class="sg-read" style="--sg-c:{color}" title="Open the country profile">'
+            f'<div class="sg-read{state}" style="--sg-c:{color}" title="Open the country profile">'
+            '<span class="sg-tier"></span>'
             + (f'<img src="{flag}" alt="">' if flag else "")
             + f'<div class="sg-read-text"><div class="sg-read-name">{html.escape(str(row["name"]))}</div>'
             f'<div class="sg-read-meta">{meta}</div></div>{_sparkline(years, color)}</div>',
@@ -296,7 +305,7 @@ def dock(current_url_path: str) -> None:
                         pass
                     for page, label, icon in DOCK_LINKS:
                         st.page_link(page, label=label, icon=icon)
-        _readout(current_url_path == "country")
+        _readout(current_url_path)  # last, so the tabs never wait for it (CSS shows it first)
 
 
 # ---------------------------------------------------------------------------
@@ -523,7 +532,7 @@ def add_to_compare(iso3: str) -> None:
 
 
 def hero(title: str, subtitle: str = "") -> None:
-    """A page banner in the Seismograph style: a dark panel with the seismogram trace along the bottom."""
+    """A page banner in the Seismographic style: a dark panel with the seismogram trace along the bottom."""
     st.markdown(
         '<div style="position:relative;overflow:hidden;background:linear-gradient(120deg,#0b1424 0%,#0d0d0d 55%,'
         '#1c0f0e 100%);border:1px solid #2c2c2a;border-radius:14px;padding:20px 26px 74px;margin:0 0 12px 0;'
@@ -537,11 +546,11 @@ def hero(title: str, subtitle: str = "") -> None:
 
 
 def brand_hero() -> None:
-    """The Seismograph banner for the home page: mark, wordmark, tagline and the trace."""
+    """The Seismographic banner for the home page: mark, wordmark, tagline and the trace."""
     hero(
         f'<span style="display:inline-flex;align-items:center;gap:14px">'
         f'<img src="{brand.data_uri("icon")}" alt="" style="height:1.35em">'
-        f'<span style="letter-spacing:0.08em">{config.APP_TITLE.upper()}</span></span>',
+        f'<span style="letter-spacing:0.08em;font-size:clamp(1.35rem, 6.6vw, 2rem)">{config.APP_TITLE.upper()}</span></span>',
         config.APP_TAGLINE,
     )
 

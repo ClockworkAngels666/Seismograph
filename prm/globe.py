@@ -149,6 +149,10 @@ const CODE_FIX = { CYN: "CYP", KOS: "XKX", SOL: "SOM" };
 let libraryPromise = null;
 const countriesPromises = {};  // per outline file
 const lastViews = {};  // per globe (component key): the camera survives Streamlit re-mounting it
+// Phones, tablets and low-power PCs get a lighter globe: simple outlines, no relief map, fewer pixels, no spin
+const LITE = window.matchMedia("(pointer: coarse)").matches || Math.min(screen.width, screen.height) < 700 ||
+  (navigator.hardwareConcurrency || 8) <= 4;
+const PIXEL_RATIO = Math.min(window.devicePixelRatio || 1, LITE ? 1.5 : 1.75);
 
 function loadLibrary() {
   if (window.Globe) return Promise.resolve(window.Globe);
@@ -310,25 +314,56 @@ function materialsFor(ctx, f) {
   return f.__materials;
 }
 
-function paintColours(ctx) {
-  for (const f of ctx.features) {
-    const m = materialsFor(ctx, f);
-    const base = colourFor(ctx, ctx.byIso.get(f.iso3));
-    const lit = f.iso3 === ctx.hover || f.iso3 === ctx.selected;
-    m.cap.color.set(base);
-    m.cap.emissive.set(lit ? base : "#000000");
-    m.cap.emissiveIntensity = f.iso3 === ctx.selected ? 0.45 : 0.3;
-    m.wall.color.set(shade(base, 0.45));
-  }
+function paintOne(ctx, f) {
+  const m = materialsFor(ctx, f);
+  const base = colourFor(ctx, ctx.byIso.get(f.iso3));
+  const lit = f.iso3 === ctx.hover || f.iso3 === ctx.selected;
+  m.cap.color.set(base);
+  m.cap.emissive.set(lit ? base : "#000000");
+  m.cap.emissiveIntensity = f.iso3 === ctx.selected ? 0.45 : 0.3;
+  m.wall.color.set(shade(base, 0.45));
+}
+
+function paintPoints(ctx) {
+  // The small-state dots are rebuilt whenever their accessors are set, so only do it when they change
+  const key = ctx.points.map((c) => c.iso3 + (c.iso3 === ctx.selected ? "s" : "") + (c.iso3 === ctx.hover ? "h" : "") +
+    colourFor(ctx, c)).join();
+  if (key === ctx.pointsKey) return;
+  ctx.pointsKey = key;
   ctx.globe
     .pointColor((c) => (c.iso3 === ctx.selected ? "#ffffff" : colourFor(ctx, c)))
     .pointRadius((c) => (c.iso3 === ctx.selected || c.iso3 === ctx.hover ? 0.55 : 0.38));
+}
+
+function paintColours(ctx) {
+  for (const f of ctx.features) paintOne(ctx, f);
+  paintPoints(ctx);
+}
+
+function hoverTo(ctx, iso3) {
+  // Repaint only the country left and the one entered, not all of them
+  if (ctx.hover === iso3) return;
+  const prev = ctx.hover;
+  ctx.hover = iso3;
+  let dots = false;
+  for (const code of [prev, iso3]) {
+    if (!code) continue;
+    const f = ctx.featureByIso.get(code);
+    if (f) paintOne(ctx, f); else dots = true;
+  }
+  if (dots) paintPoints(ctx);
 }
 
 function paint(ctx) {
   const g = ctx.globe;
   if (!g) return;
   paintColours(ctx);
+  // Heights and borders rebuild every country's 3D shape, so skip that when nothing has changed
+  const shape = ctx.features.length + "|" + ctx.points.length + "|" + ctx.selected + "|" +
+    ctx.features.map((f) => heightFor(ctx, f.iso3, 0.004).toFixed(4)).join() + "|" +
+    ctx.points.map((c) => heightFor(ctx, c.iso3, 0.008).toFixed(4)).join();
+  if (shape === ctx.shapeKey) return;
+  ctx.shapeKey = shape;
   g.polygonStrokeColor((f) => (f.iso3 === ctx.selected ? "#ffffff" : "rgba(0,0,0,0.55)"))
     .polygonAltitude((f) => heightFor(ctx, f.iso3, 0.004))
     .pointAltitude((c) => heightFor(ctx, c.iso3, 0.008));
@@ -352,7 +387,8 @@ function followCamera(ctx) {
 
 function drawLayers(ctx) {
   if (!ctx.globe) return;
-  ctx.globe.pointsData(ctx.points);
+  const dots = ctx.points.map((c) => c.iso3).join();
+  if (dots !== ctx.dotsKey) { ctx.dotsKey = dots; ctx.globe.pointsData(ctx.points); }
   drawRings(ctx);
   drawArcs(ctx);
 }
@@ -367,6 +403,9 @@ function drawRings(ctx) {
       if (at) rings.push({ iso3: c.iso3, lat: at.lat, lng: at.lng, deaths });
     }
   }
+  const key = rings.map((r) => r.iso3 + ":" + r.deaths + ":" + heightFor(ctx, r.iso3, 0).toFixed(4)).join();
+  if (key === ctx.ringsKey) return;  // unchanged: keep the running animation instead of restarting it
+  ctx.ringsKey = key;
   ctx.globe.ringsData(rings)
     .ringColor(() => (t) => "rgba(253,128,120," + Math.sqrt(Math.max(0, 1 - t)).toFixed(3) + ")")
     .ringAltitude((r) => heightFor(ctx, r.iso3, 0.006) + 0.002)
@@ -388,6 +427,9 @@ function drawArcs(ctx) {
     const a = locate(ctx, f.from), b = locate(ctx, f.to);
     if (a && b) arcs.push({ ...f, startLat: a.lat, startLng: a.lng, endLat: b.lat, endLng: b.lng, w: Math.sqrt(f.value / max) });
   }
+  const key = arcs.map((d) => d.from + ">" + d.to + ":" + d.value).join();
+  if (key === ctx.arcsKey) return;
+  ctx.arcsKey = key;
   ctx.globe.arcsData(arcs)
     .arcColor(() => ["rgba(116,177,254,0.08)", "rgba(185,215,254,0.95)"])
     .arcStroke((d) => 0.25 + 1.2 * d.w)
@@ -577,25 +619,26 @@ function fitSize(root, ctx) {
 function build(root, ctx, Globe, features) {
   const el = root.querySelector(".rg-canvas");
   const lastView = lastViews[ctx.data.key];
-  const options = { animateIn: !lastView, rendererConfig: { antialias: true, alpha: true, powerPreference: "high-performance" } };
+  const options = { animateIn: !lastView && !LITE,
+                    rendererConfig: { antialias: !LITE, alpha: true, powerPreference: "high-performance" } };
   let g;
   try { g = new Globe(el, options); } catch (err) { g = Globe(options)(el); }
   ctx.globe = g;
-  g.renderer().setPixelRatio(Math.min(2, window.devicePixelRatio || 1));  // crisp edges on high-DPI screens
+  g.renderer().setPixelRatio(PIXEL_RATIO);  // sharp enough on high-DPI screens without rendering 4-9x the pixels
   g.backgroundColor("rgba(0,0,0,0)")
-    .globeImageUrl(EARTH_IMAGE).bumpImageUrl(EARTH_BUMP)
+    .globeImageUrl(EARTH_IMAGE)
     .showAtmosphere(true).atmosphereColor("#6ea8ff").atmosphereAltitude(0.16)
     .showGraticules(false)
-    .polygonCapCurvatureResolution(3)
+    .polygonCapCurvatureResolution(LITE ? 6 : 4)
     .polygonCapMaterial((f) => materialsFor(ctx, f).cap)
     .polygonSideMaterial((f) => materialsFor(ctx, f).wall)
-    .polygonsTransitionDuration(250)
+    .polygonsTransitionDuration(LITE ? 0 : 250)
     .polygonLabel((f) => tooltip(ctx, f.iso3, f.properties.ADMIN))
-    .onPolygonHover((f) => { ctx.hover = f ? f.iso3 : null; el.style.cursor = f ? "pointer" : "grab"; paintColours(ctx); })
+    .onPolygonHover((f) => { el.style.cursor = f ? "pointer" : "grab"; hoverTo(ctx, f ? f.iso3 : null); })
     .onPolygonClick((f) => select(root, ctx, f.iso3, true))
-    .pointLat("lat").pointLng("lng").pointsMerge(false).pointsTransitionDuration(250).pointResolution(16)
+    .pointLat("lat").pointLng("lng").pointsMerge(false).pointsTransitionDuration(LITE ? 0 : 250).pointResolution(12)
     .pointLabel((c) => tooltip(ctx, c.iso3, c.name))
-    .onPointHover((c) => { ctx.hover = c ? c.iso3 : null; el.style.cursor = c ? "pointer" : "grab"; paintColours(ctx); })
+    .onPointHover((c) => { el.style.cursor = c ? "pointer" : "grab"; hoverTo(ctx, c ? c.iso3 : null); })
     .onPointClick((c) => select(root, ctx, c.iso3, true))
     .onGlobeClick(() => select(root, ctx, null, false));
   useOutlines(ctx, features);
@@ -606,14 +649,33 @@ function build(root, ctx, Globe, features) {
   material.emissiveIntensity = 1;
   material.shininess = 9;
   material.specular.set("#0b1524");  // matte sea: a faint sheen, no washed-out glare up close
-  material.bumpScale = 5;
+  if (!LITE) { g.bumpImageUrl(EARTH_BUMP); material.bumpScale = 5; }  // terrain relief: desktops only
   // Softer ambient light and a "sun" that follows the camera, so countries get depth and highlights
   for (const light of typeof g.lights === "function" ? g.lights() : []) {
     if (light.isAmbientLight) light.intensity = 0.8 * Math.PI;
     if (light.isDirectionalLight) { light.intensity = 1.1 * Math.PI; ctx.sun = light; }
   }
-  const tick = () => { if (!ctx.globe) return; followCamera(ctx); ctx.frame = requestAnimationFrame(tick); };
-  tick();
+  ctx.tick = () => {
+    if (!ctx.globe || !ctx.active) { ctx.frame = null; return; }
+    followCamera(ctx);
+    ctx.frame = requestAnimationFrame(ctx.tick);
+  };
+  // Stop drawing while the globe is off screen, in a hidden tab, or the browser tab is in the background
+  ctx.active = true;
+  ctx.visible = true;
+  ctx.setActive = () => {
+    const on = !!ctx.globe && ctx.visible && !document.hidden;
+    if (on === ctx.active) return;
+    ctx.active = on;
+    if (on) { g.resumeAnimation(); if (!ctx.frame) ctx.tick(); } else { g.pauseAnimation(); }
+  };
+  ctx.watch = new IntersectionObserver((entries) => {
+    ctx.visible = entries[entries.length - 1].isIntersecting;
+    ctx.setActive();
+  }, { rootMargin: "120px" });
+  ctx.watch.observe(root);
+  document.addEventListener("visibilitychange", ctx.setActive);
+  ctx.tick();
   const controls = g.controls();
   controls.autoRotate = ctx.spin;
   controls.autoRotateSpeed = 0.35;
@@ -642,7 +704,7 @@ export default function (component) {
   if (!root) return;
   const picked = data.selected || data.focus || null;
   const ctx = root.__riskGlobe || (root.__riskGlobe = {
-    selected: picked, hover: null, spin: data.layers.spin && !picked, extrude: data.layers.extrude,
+    selected: picked, hover: null, spin: data.layers.spin && !picked && !LITE, extrude: data.layers.extrude,
     showFlows: data.layers.flows, showConflict: data.layers.conflict, globe: null, timer: null,
     yearIndex: data.years.length - 1,
   });
@@ -673,7 +735,8 @@ export default function (component) {
           const at = locate(ctx, ctx.selected);
           if (at) ctx.globe.pointOfView({ lat: at.lat, lng: at.lng, altitude: 1.7 }, 0);
         }
-        // Then swap in the detailed outlines; if they fail to download, the simple ones stay
+        // Then swap in the detailed outlines (not on phones: 3x the shapes); if they fail, the simple ones stay
+        if (LITE) return;
         loadCountries(COUNTRIES_DETAILED)
           .then((detailed) => {
             if (!ctx.globe) return;
@@ -697,6 +760,8 @@ export default function (component) {
         if (ctx.timer) clearInterval(ctx.timer);
         if (ctx.frame) cancelAnimationFrame(ctx.frame);
         if (ctx.resize) ctx.resize.disconnect();
+        if (ctx.watch) ctx.watch.disconnect();
+        if (ctx.setActive) document.removeEventListener("visibilitychange", ctx.setActive);
         if (ctx.globe._destructor) ctx.globe._destructor();
         ctx.globe = null;
       }

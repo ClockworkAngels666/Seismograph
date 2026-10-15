@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-APP_TITLE = "Seismograph"
+APP_TITLE = "Seismographic"
 APP_TAGLINE = "Picking up political tremors before they become earthquakes."
 APP_DESCRIPTION = (
     "A transparent country risk index built from open data — "
@@ -705,19 +705,19 @@ RED_FLAGS: list[tuple[str, str, float, str, str]] = [
 FLAG_BASIS: dict[tuple[str, float], tuple[str | None, str]] = {
     ("battle_deaths_raw", 1000): ("ucdp_def", "UCDP's definition of a war"),
     ("battle_deaths_raw", 25): ("ucdp_def", "UCDP's definition of an active armed conflict"),
-    ("inflation", 50): ("rr_inflation", "Seismograph line for a deep crisis, well above the 20% inflation-crisis "
+    ("inflation", 50): ("rr_inflation", "Seismographic line for a deep crisis, well above the 20% inflation-crisis "
                                         "line"),
     ("inflation", 20): ("rr_inflation", "Reinhart & Rogoff's definition of an inflation crisis"),
     ("gdp_growth", 0): ("imf_gdp", "By definition: real output is shrinking"),
     ("gov_debt", 90): ("rr_debt", "Reinhart & Rogoff's high-debt benchmark; later research disputes the growth "
                                   "effect, so it is only a Watch flag"),
-    ("fiscal_balance", -5): ("eu_sgp", "Seismograph line; the EU's reference value is a 3% deficit"),
+    ("fiscal_balance", -5): ("eu_sgp", "Seismographic line; the EU's reference value is a 3% deficit"),
     ("current_account", -5): ("freund", "Deficits near 5% of GDP are where adjustment has tended to start"),
     ("reserves_months", 3): ("imf_ara", "The traditional rule of thumb discussed in the IMF's reserve-adequacy work"),
-    ("youth_unemployment", 25): ("ilo_unemployment", "Seismograph line: one in four young people in the labour "
+    ("youth_unemployment", 25): ("ilo_unemployment", "Seismographic line: one in four young people in the labour "
                                                      "force out of work"),
-    ("displaced_share", 5): ("unhcr_def", "Seismograph line: one person in twenty forcibly displaced"),
-    ("homicide", 20): ("unodc", "Seismograph line, several times the global rate in UNODC data"),
+    ("displaced_share", 5): ("unhcr_def", "Seismographic line: one person in twenty forcibly displaced"),
+    ("homicide", 20): ("unodc", "Seismographic line, several times the global rate in UNODC data"),
 }
 SEVERITY_ORDER = {"critical": 0, "serious": 1, "warning": 2}
 SEVERITY_ICON = {"critical": "🔴", "serious": "🟠", "warning": "🟡"}

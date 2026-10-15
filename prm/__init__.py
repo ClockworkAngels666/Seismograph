@@ -1,1 +1,1 @@
-"""Seismograph — data, scoring and UI helpers for the political risk index."""
+"""Seismographic — data, scoring and UI helpers for the political risk index."""

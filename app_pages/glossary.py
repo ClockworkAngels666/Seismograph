@@ -1,4 +1,4 @@
-"""Glossary & legend: every term, abbreviation, colour and symbol used in Seismograph."""
+"""Glossary & legend: every term, abbreviation, colour and symbol used in Seismographic."""
 
 import html
 import re

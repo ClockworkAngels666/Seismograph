@@ -234,6 +234,13 @@ def get_scores(_core: dict, year: int, weights: tuple[tuple[str, float], ...], v
     return scoring.compute_scores(get_values(_core, year, version), dict(weights))
 
 
+@st.cache_data(ttl=CACHE_TTL, show_spinner=False, max_entries=64)
+def get_sensitivity(_core: dict, year: int, iso3: str, weights: tuple[tuple[str, float], ...],
+                    version: str) -> pd.DataFrame:
+    """A country's score with equal weights and with each pillar left out (five full recomputes, so cached)."""
+    return scoring.sensitivity(get_values(_core, year, version), iso3, dict(weights))
+
+
 @st.cache_data(ttl=CACHE_TTL, show_spinner=False, max_entries=16)
 def get_history(_core: dict, weights: tuple[tuple[str, float], ...], version: str) -> pd.DataFrame:
     years = range(config.HISTORY_START, analysis_year() + 1)

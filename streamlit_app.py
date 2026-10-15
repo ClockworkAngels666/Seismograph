@@ -1,4 +1,4 @@
-"""Seismograph — entry point.
+"""Seismographic — entry point.
 
 Run locally with:  streamlit run streamlit_app.py
 """

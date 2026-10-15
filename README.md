@@ -1,13 +1,13 @@
-<img src="assets/logo.svg" alt="Seismograph" width="380">
+<img src="assets/logo.svg" alt="Seismographic" width="380">
 
-# Seismograph
+# Seismographic
 
 **Picking up political tremors before they become earthquakes.** A transparent country-risk index built from open
 data, with an analyst's judgment on top.
 
 🔗 **Live app:** https://YOUR-APP-NAME.streamlit.app  *(replace after deploying)*
 
-Seismograph scores around 200 economies on political, governance, economic and social risk using live data from the
+Seismographic scores around 200 economies on political, governance, economic and social risk using live data from the
 World Bank, IMF, UNHCR and the Uppsala Conflict Data Program. It follows the structure professional country-risk
 models use — indicators → pillars → a weighted composite — and shows every step, so a reader can see *why* a
 country scores the way it does and challenge the assumptions.

@@ -1,4 +1,4 @@
-"""Seismograph brand assets: the mark, the wordmark and the banner wave (SVGs in assets/)."""
+"""Seismographic brand assets: the mark, the wordmark and the banner wave (SVGs in assets/)."""
 
 from __future__ import annotations
 

@@ -9,7 +9,7 @@ from prm.config import INDICATORS, PILLARS, RED_FLAGS, SEVERITY_LABEL, TIERS
 st.title("Methodology")
 st.markdown(
     """
-Seismograph follows the standard recipe for composite indicators set out in the
+Seismographic follows the standard recipe for composite indicators set out in the
 [OECD/JRC *Handbook on Constructing Composite Indicators*](https://www.oecd.org/en/publications/handbook-on-constructing-composite-indicators-methodology-and-user-guide_9789264043466-en.html):
 choose indicators that answer a clear question, **normalise** them to a common scale, **aggregate** them into
 pillars and a composite with explicit **weights**, and test how sensitive the result is to those choices.
@@ -117,12 +117,12 @@ st.markdown(
 st.dataframe(
     pd.DataFrame(
         [{"Severity": SEVERITY_LABEL[sev], "Flag": label, "Indicator": key, "Rule": f"{op} {thr:g}",
-          "Basis": config.FLAG_BASIS.get((key, thr), (None, "Seismograph line"))[1],
+          "Basis": config.FLAG_BASIS.get((key, thr), (None, "Seismographic line"))[1],
           "Reference": config.SOURCES[src].url if (src := config.FLAG_BASIS.get((key, thr), (None, ""))[0]) else None}
          for key, op, thr, sev, label in RED_FLAGS]
         + [{"Severity": "Watch", "Flag": "Political stability deteriorating", "Indicator": "wgi_pv",
             "Rule": f"falls ≥ {config.WGI_TREND_THRESHOLD:g} pts in {config.WGI_TREND_YEARS} years",
-            "Basis": "Seismograph line, larger than most year-to-year noise in the WGI",
+            "Basis": "Seismographic line, larger than most year-to-year noise in the WGI",
             "Reference": config.SOURCES["wgi_method"].url}]
     ),
     hide_index=True,
