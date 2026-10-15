@@ -11,6 +11,9 @@ from __future__ import annotations
 
 import datetime as dt
 import email.utils
+import io
+import re
+import unicodedata
 import time
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
@@ -473,3 +476,69 @@ def fetch_gdelt_tone(name: str, timespan: str = "3m") -> pd.DataFrame:
     df = pd.DataFrame(points).rename(columns={"value": "tone"})
     df["date"] = pd.to_datetime(df["date"], format="%Y%m%dT%H%M%SZ", errors="coerce", utc=True)
     return df.dropna(subset=["date"])[["date", "tone"]]
+
+
+PROTEST_TERMS = "(protest OR protesters OR demonstration OR riot OR strike OR unrest)"
+
+
+def fetch_gdelt_protests(name: str, timespan: str = "3m") -> pd.DataFrame:
+    """Share of all monitored news coverage that is about protest in this country (GDELT, smoothed over 7 days)."""
+    params = {
+        "query": f"{_gdelt_term(name)} {PROTEST_TERMS} sourcelang:english",
+        "mode": "TimelineVol",
+        "format": "json",
+        "timespan": timespan,
+        "timelinesmooth": 7,
+    }
+    try:
+        response = requests.get(GDELT_API, params=params, timeout=25, headers=HEADERS)
+        response.raise_for_status()
+        data = response.json()
+    except requests.RequestException as exc:
+        raise SourceError(f"GDELT unreachable: {exc}") from exc
+    except ValueError as exc:
+        raise SourceError(response.text.strip()[:200] or "GDELT returned no data") from exc
+    timeline = data.get("timeline") or []
+    points = timeline[0].get("data", []) if timeline else []
+    if not points:
+        return pd.DataFrame(columns=["date", "share"])
+    df = pd.DataFrame(points).rename(columns={"value": "share"})
+    df["date"] = pd.to_datetime(df["date"], format="%Y%m%dT%H%M%SZ", errors="coerce", utc=True)
+    return df.dropna(subset=["date"])[["date", "share"]]
+
+
+# ---------------------------------------------------------------------------
+# Fragile States Index (The Fund for Peace): a benchmark, not used in the score
+# ---------------------------------------------------------------------------
+FSI_NAMES = {  # FSI country names that differ from the World Bank's
+    "congodemocraticrepublic": "COD", "congorepublic": "COG", "palestine": "PSE", "turkey": "TUR",
+    "swaziland": "SWZ", "gambia": "GMB", "macedonia": "MKD", "capeverde": "CPV", "bahamas": "BHS",
+    "czechrepublic": "CZE", "israelandwestbank": "ISR",
+}
+
+
+def _name_key(name: str) -> str:
+    plain = unicodedata.normalize("NFKD", str(name)).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z]", "", plain)
+
+
+def fetch_fsi(url: str, countries: pd.DataFrame) -> pd.DataFrame:
+    """One edition of the Fragile States Index: iso3, year, total (0-120, higher = more fragile), rank."""
+    try:
+        response = requests.get(url, timeout=30, headers=HEADERS)
+        response.raise_for_status()
+        raw = pd.read_excel(io.BytesIO(response.content))
+    except (requests.RequestException, ValueError, ImportError) as exc:
+        raise SourceError(f"Fragile States Index: {exc}") from exc
+    lookup = {_name_key(n): i for n, i in zip(countries["name"], countries["iso3"])}
+    if "official_name" in countries:
+        lookup.update({_name_key(n): i for n, i in zip(countries["official_name"], countries["iso3"]) if isinstance(n, str)})
+    lookup.update(FSI_NAMES)
+    df = pd.DataFrame({
+        "fsi_name": raw["Country"].astype(str),
+        "iso3": raw["Country"].map(lambda n: lookup.get(_name_key(n))),
+        "year": (raw["Year"].dt.year if pd.api.types.is_datetime64_any_dtype(raw["Year"])
+                 else pd.to_numeric(raw["Year"], errors="coerce")),
+        "total": pd.to_numeric(raw["Total"], errors="coerce"),
+    })
+    return df.dropna(subset=["iso3", "total"]).reset_index(drop=True)

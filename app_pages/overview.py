@@ -13,6 +13,17 @@ hist = ui.history(core)
 table = ui.master_table(core, values, scores, hist)
 
 
+# The headlines are a network call: on a full page run they are filled in last, so the rest of the page shows first.
+# Globe clicks re-run only the fragment, after the page is drawn, and fill them at once.
+_page_drawn = False
+_deferred_news: list = []
+
+
+def _fill_news(slot, query: str | None, iso2) -> None:
+    with slot.container():
+        ui.news_list(query, limit=12, iso2=iso2)
+
+
 @st.fragment(run_every="10m")
 def globe_with_news(metric: str, map_title: str, in_view: set[str], region: str | None) -> None:
     """The 3D globe plus a news column that follows the country clicked on it (re-checked every 10 minutes)."""
@@ -31,13 +42,19 @@ def globe_with_news(metric: str, map_title: str, in_view: set[str], region: str 
             row = table.set_index("iso3").loc[selected]
             ui.country_heading(names[selected], row["iso2"], level=5)
             st.caption("Latest risk news · click another country to switch")
-            ui.news_list(config.NEWS_NAMES.get(selected, names[selected]), limit=12, iso2=row["iso2"])
+            news = (config.NEWS_NAMES.get(selected, names[selected]), row["iso2"])
         else:
             st.markdown("##### 🌍 Global risk news")
             st.caption("Click a country on the globe for its news")
-            ui.news_list(None, limit=12)
+            news = (None, None)
+        slot = st.empty()
+        slot.caption("Loading headlines…")
         st.page_link("app_pages/video.py", label="Watch live TV news", icon=":material/live_tv:")
         ui.cite("news", "gdelt")
+    if _page_drawn:
+        _fill_news(slot, *news)
+    else:
+        _deferred_news.append((slot, news))
 
 
 def _pick_region() -> None:
@@ -48,12 +65,7 @@ def _pick_region() -> None:
 
 
 ui.brand_hero()
-st.markdown(
-    f"A transparent, open-data index of **political, governance, economic and social risk** for "
-    f"{table['composite'].notna().sum()} economies, built the way professional country-risk models are: "
-    "indicators → pillars → a weighted composite, with absolute red flags and analyst judgment on top. "
-    "Scores are **relative** (0 = lowest risk in the sample, 100 = highest)."
-)
+st.page_link("app_pages/intro.py", label="New here? Start with the introduction", icon=":material/waving_hand:")
 
 # --- Filters -----------------------------------------------------------------
 regions = sorted(table["region"].dropna().unique())
@@ -102,8 +114,13 @@ k3.metric("Median score", "—" if median_now is None else f"{median_now:.0f}", 
 k4.metric("In armed conflict", n_conflict, border=True, chart_data=_trend("conflict"),
           delta=None if last is None else int(n_conflict - last["conflict"]), delta_color="inverse",
           delta_description=vs, help="Countries with at least 25 battle-related deaths in the latest UCDP year.")
-k5.metric("Analyst assessments", f"{(view['assessment'] == '✓').sum()}", border=True,
-          help="Countries with a written assessment in the assessments/ folder.")
+n_assessed = int((view["assessment"] == "✓").sum())
+if n_assessed:
+    k5.metric("Analyst assessments", n_assessed, border=True,
+              help="Countries with a written assessment in the assessments/ folder.")
+else:  # until assessments are written, show something informative instead of a zero
+    k5.metric("With a red flag", int((scored["flags"] > 0).sum()), border=True,
+              help="Countries crossing at least one absolute warning threshold, such as inflation of 20% or more.")
 st.caption(f"Small charts: each figure since {config.HISTORY_START}. Arrows compare with {year - 1}; red = more risk.")
 ui.cite("index")
 
@@ -144,7 +161,7 @@ st.page_link("app_pages/changes.py", label="Everything that changed this year �
 # --- Hotspots to watch ----------------------------------------------------------------
 st.subheader("Hotspots to watch")
 st.caption(
-    "An automatic screen, not a forecast: countries scoring **50 or more** that also got at least 2 points riskier "
+    "Countries scoring **50 or more** that also got at least 2 points riskier "
     f"since {year - 1}, crossed a new red-flag threshold, or face a high-significance event in the next 120 days."
 )
 prev_values = data.get_values(core, year - 1, core["version"])
@@ -297,3 +314,8 @@ else:
 
 ui.data_status(core)
 ui.footer()
+
+for _slot, _news in _deferred_news:
+    _fill_news(_slot, *_news)
+_deferred_news.clear()
+_page_drawn = True

@@ -6,3 +6,7 @@ __pycache__
 *.pyc
 .streamlit/secrets.toml
 deploy
+docs
+tests
+pytest.ini
+case_studies/README.md

@@ -1,51 +1,50 @@
 # Publishing Seismographic (no coding needed)
 
-Seismographic is published on **Hugging Face Spaces**: free, no "hosted by" badge on the app, and it updates by
-itself every time the GitHub repository changes. Total time: about 10 minutes, once.
+Two free ways to put the app online. Both update by themselves every time the GitHub repository changes.
 
-## 1. Create a Hugging Face account and a token (3 minutes)
+## Option A: Streamlit Community Cloud (5 minutes)
+
+1. Go to [share.streamlit.io](https://share.streamlit.io) and sign in with GitHub.
+2. Click **Create app** → **Deploy a public app from GitHub**.
+3. Repository `ClockworkAngels666/Seismographic`, branch `main`, main file path `streamlit_app.py`.
+4. Under **Advanced settings**, choose Python 3.12 or newer. Optionally set a custom **App URL** such as
+   `seismographic`.
+5. Click **Deploy**. The first build takes a few minutes. Pages open instantly from the saved snapshot and switch to
+   live data by themselves about a minute later.
+
+Streamlit Community Cloud shows a small "Hosted with Streamlit" badge in the bottom-right corner of the app.
+
+## Option B: Hugging Face Spaces (10 minutes, no badge)
 
 1. Sign up at [huggingface.co/join](https://huggingface.co/join) and confirm your e-mail.
-2. Open [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) → **Create new token**.
-3. Choose the token type **Write**, name it `seismographic-publish`, click **Create token** and copy it.
-   Keep it private: anyone with it can change your Spaces.
+2. Open [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) → **Create new token** → type
+   **Write**, name it `seismographic-publish`, copy it. Keep it private.
+3. Give GitHub the token (it asks you to paste it, then stores it encrypted) and the Space's name:
 
-## 2. Connect GitHub to Hugging Face (2 minutes)
+   ```bash
+   gh secret set HF_TOKEN -R ClockworkAngels666/Seismographic
+   ```
 
-GitHub publishes the app for you, so it needs the token (stored encrypted, never shown again) and the Space's name.
+   ```bash
+   gh variable set HF_SPACE -R ClockworkAngels666/Seismographic --body "YOUR-HF-USERNAME/Seismographic"
+   ```
 
-In a terminal (it asks you to paste the token):
-
-```bash
-gh secret set HF_TOKEN -R ClockworkAngels666/Seismographic
-```
-
-```bash
-gh variable set HF_SPACE -R ClockworkAngels666/Seismographic --body "YOUR-HF-USERNAME/Seismographic"
-```
-
-Or on github.com: the repository's **Settings → Secrets and variables → Actions**. Add a *secret* `HF_TOKEN`
-(the token), then on the *Variables* tab a variable `HF_SPACE` (`YOUR-HF-USERNAME/Seismographic`).
-
-## 3. Publish (5 minutes, mostly waiting)
-
-1. On GitHub open the **Actions** tab → **Publish to Hugging Face** → **Run workflow**.
-   It creates the Space the first time and uploads the app. After this, every push to `main` publishes by itself.
-2. Open `huggingface.co/spaces/YOUR-HF-USERNAME/Seismographic`. It shows **Building** for 3–5 minutes, then
-   **Running**.
-3. Share the direct address, which shows the app full screen with nothing around it:
-   `https://YOUR-HF-USERNAME-seismographic.hf.space` (your username in lower case).
+   Or on github.com: **Settings → Secrets and variables → Actions**.
+4. On GitHub open **Actions** → **Publish to Hugging Face** → **Run workflow**. It creates the Space and uploads the
+   app; from then on every push to `main` publishes by itself.
+5. After 3–5 minutes of building, share `https://YOUR-HF-USERNAME-seismographic.hf.space` (username in lower case):
+   the app full screen with nothing around it.
 
 The `Dockerfile` in the repository also runs the app on Render, Fly.io or any other Docker host.
 
-## 4. Monthly data backup
+## Monthly data backup
 
 The **Refresh data snapshot** action saves a copy of all data on the 3rd of every month, so pages open instantly
 and keep working if a source is down. The Space republishes after each refresh. If a run fails at "Commit the
 snapshot", go to **Settings → Actions → General → Workflow permissions**, pick **Read and write permissions**,
 save, and run it again.
 
-## 5. Make it yours
+## Make it yours
 
 * **Write assessments**: use the app's *Assessment builder* page, download the file and upload it to the
   `assessments` folder. See `assessments/README.md` for a writing guide.
@@ -59,6 +58,8 @@ Every change you commit on GitHub appears in the live app a few minutes later.
 
 | Problem | Fix |
 |---|---|
+| "This app has gone to sleep" (Streamlit) | Free apps sleep after a period without visitors. Click the button to wake it; open it yourself before sending the link to anyone. |
+| The app shows an error on start-up (Streamlit) | Open **Manage app** (bottom right, only you see it) to read the logs. |
 | The Space says it is sleeping | Free Spaces sleep after about two days without visitors. Opening it wakes it in under a minute; open it yourself before sending the link to anyone. |
 | The Action fails with "401" or "403" | The token is missing or is not a **Write** token. Create a new one and set `HF_TOKEN` again. |
 | The Action is skipped | The `HF_SPACE` variable is not set (step 2). |

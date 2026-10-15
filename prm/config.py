@@ -32,6 +32,8 @@ URL_UNHCR = "https://www.unhcr.org/refugee-statistics/"
 URL_UNHCR_API = "https://api.unhcr.org/docs/refugee-statistics.html"
 URL_UCDP = "https://ucdp.uu.se/"
 URL_GDELT = "https://www.gdeltproject.org/"
+# Latest edition offered as a download on fragilestatesindex.org/excel (benchmark only, fetched when needed)
+FSI_URL = "https://fragilestatesindex.org/wp-content/uploads/2023/06/FSI-2023-DOWNLOAD.xlsx"
 
 # ---------------------------------------------------------------------------
 # Raw series fetched from the APIs.  key -> (provider, code, options)
@@ -121,7 +123,7 @@ SOURCES: dict[str, Source] = {
                     "Yearly, with a mid-year update"),
     "news": Source("Bing News and Google News (RSS search)", "Microsoft and Google", "https://www.bing.com/news",
                    "Live headlines and photos; every headline links to its original publisher", "Every 10 minutes"),
-    "gdelt": Source("GDELT DOC 2.0", "The GDELT Project", URL_GDELT, "Backup headlines and media tone",
+    "gdelt": Source("GDELT DOC 2.0", "The GDELT Project", URL_GDELT, "Backup headlines, media tone and protest coverage",
                     "Every 15 minutes"),
     "youtube": Source("Official YouTube channels of broadcasters, think tanks and institutions", "Each channel",
                       "https://www.youtube.com", "Live TV and video reports, through official embeds and feeds",
@@ -241,7 +243,10 @@ SOURCES: dict[str, Source] = {
     "hdx": Source("Humanitarian Data Exchange", "UN OCHA", "https://data.humdata.org/",
                   "Open crisis datasets from humanitarian agencies", "Daily"),
     "fsi": Source("Fragile States Index", "The Fund for Peace", "https://fragilestatesindex.org/",
-                  "An overall fragility score from 12 indicators", "Yearly"),
+                  "An overall fragility score from 12 indicators; the benchmark on the Methodology page", "Yearly"),
+    "wikipedia": Source("Wikipedia articles on the case-study events", "Wikimedia Foundation", "https://en.wikipedia.org/",
+                        "Background reading on the events in the case studies (dates and what happened)",
+                        "Continuously", "CC BY-SA 4.0"),
 }
 # The index is built from these
 INDEX_SOURCES = ["wgi", "wdi", "ucdp", "imf", "unhcr"]
@@ -265,7 +270,7 @@ SOURCE_GROUPS: dict[str, list[str]] = {
                                         "ilo_unemployment"],
     "Method and analytic tradecraft": ["oecd_jrc", "wgi_docs", "wgi_method", "icd203", "cia_tradecraft", "heuer"],
     "Economic explainers and reports": ["imf_weo", "imf_fm", "imf_inflation", "imf_gdp", "imf_lending"],
-    "Live news, video and events": ["news", "gdelt", "youtube", "ifes", "ocha"],
+    "Live news, video and events": ["news", "gdelt", "youtube", "ifes", "ocha", "wikipedia"],
     "Maps and graphics": ["natural_earth", "globe_gl", "flags"],
 }
 # Independent sources to check each pillar against (not used in the score)

@@ -262,6 +262,18 @@ def risk_history(hist: pd.DataFrame) -> go.Figure:
     return _base(fig, height=380, legend=True)
 
 
+def case_history(hist: pd.DataFrame, event_date: str, label: str) -> go.Figure:
+    """A country's risk over time with the year before the event shaded and the event marked."""
+    fig = risk_history(hist)
+    when = pd.Timestamp(event_date)
+    x = when.year + (when.dayofyear - 1) / 365
+    fig.add_vrect(x0=when.year - 1.5, x1=when.year - 0.5, fillcolor="#fd8078", opacity=0.08, line_width=0, layer="below")
+    fig.add_vline(x=x, line=dict(color="#fd8078", dash="dash", width=1.5))
+    fig.add_annotation(x=x, y=100, yref="y", text=label, showarrow=False, xanchor="left", yanchor="top",
+                       font=dict(color="#fd8078", **FONT), bgcolor="rgba(0,0,0,0.6)")
+    return fig
+
+
 def whatif_pillars(base: pd.Series, scenario: pd.Series) -> go.Figure:
     """Pillar scores today (grey) against the what-if scenario (pillar colours)."""
     keys = [p.key for p in PILLARS][::-1]
@@ -353,6 +365,14 @@ def tone_chart(df: pd.DataFrame) -> go.Figure:
                                hovertemplate="%{x|%d %b %Y}<br>Average tone: %{y:.2f}<extra></extra>"))
     fig.add_hline(y=0, line=dict(color=MUTED, width=1))
     fig.update_yaxes(title="Average tone (negative = more negative coverage)")
+    return _base(fig, height=300)
+
+
+def protest_chart(df: pd.DataFrame) -> go.Figure:
+    fig = go.Figure(go.Scatter(x=df["date"], y=df["share"], mode="lines", line=dict(color="#fd8078", width=2),
+                               fill="tozeroy", fillcolor="rgba(253,128,120,0.12)",
+                               hovertemplate="%{x|%d %b %Y}<br>%{y:.3f}% of monitored coverage<extra></extra>"))
+    fig.update_yaxes(title="Share of world news coverage (%)", rangemode="tozero")
     return _base(fig, height=300)
 
 
@@ -460,6 +480,40 @@ def yearly_bars(years, values, title: str, color: str, hover: str) -> go.Figure:
     fig.update_xaxes(tickformat="d")
     fig.update_yaxes(title=title)
     return _base(fig, height=340)
+
+
+FIFTHS = ["Safest fifth", "2nd fifth", "Middle fifth", "4th fifth", "Riskiest fifth"]
+
+
+def onset_fifths(by_fifth: pd.DataFrame, base_rate: float, color: str) -> go.Figure:
+    """Share of countries at peace where armed conflict started the next year, by fifth of the risk score."""
+    rate = by_fifth["mean"].fillna(0) * 100
+    fig = go.Figure(go.Bar(
+        x=FIFTHS, y=rate, marker=dict(color=color, opacity=[0.35, 0.5, 0.65, 0.82, 1.0], line=dict(color=SURFACE, width=1)),
+        text=[f"{r:.1f}%" for r in rate], textposition="outside", textfont=dict(color="#c3c2b7", **FONT),
+        customdata=by_fifth[["sum", "size"]].fillna(0).astype(int).to_numpy(),
+        hovertemplate="%{x}: conflict started in %{customdata[0]} of %{customdata[1]} cases (%{y:.1f}%)<extra></extra>",
+    ))
+    fig.add_hline(y=base_rate * 100, line=dict(color=MUTED, dash="dash", width=1),
+                  annotation_text=f"average {base_rate * 100:.1f}%", annotation_position="top left",
+                  annotation_font=dict(color=MUTED, **FONT))
+    fig.update_yaxes(title="Conflict started the next year (%)", rangemode="tozero")
+    fig.update_xaxes(title="Risk score the year before")
+    return _base(fig, height=360)
+
+
+def benchmark_scatter(df: pd.DataFrame, year: int) -> go.Figure:
+    """Seismographic's composite against the Fragile States Index, one dot per country, in tier colours."""
+    fig = go.Figure(go.Scatter(
+        x=df["fsi"], y=df["score"], mode="markers",
+        marker=dict(size=8, color=[TIER_COLORS.get(t, MUTED) for t in df["tier"].fillna("—")],
+                    line=dict(color=SURFACE, width=1), opacity=0.9),
+        customdata=df[["name"]].to_numpy(),
+        hovertemplate="<b>%{customdata[0]}</b><br>Fragile States Index %{x:.1f}<br>Seismographic %{y:.0f}<extra></extra>",
+    ))
+    fig.update_xaxes(title=f"Fragile States Index {year} (higher = more fragile)")
+    fig.update_yaxes(title=f"Seismographic {year} (0–100)", range=[0, 100])
+    return _base(fig, height=420)
 
 
 def ranked_bars(df: pd.DataFrame, value: str, label: str, color: str, hover: str, fmt: str = ",.0f") -> go.Figure:

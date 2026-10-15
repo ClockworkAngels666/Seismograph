@@ -3,7 +3,7 @@
 import pandas as pd
 import streamlit as st
 
-from prm import config, ui
+from prm import charts, config, data, ui
 from prm.config import INDICATORS, PILLARS, RED_FLAGS, SEVERITY_LABEL, TIERS
 
 st.title("Methodology")
@@ -140,7 +140,93 @@ st.markdown(
     "whether a change is statistically clear or within the margin of error."
 )
 
-st.header("8 · Limitations")
+st.header("8 · Track record")
+st.markdown(
+    "Does a high score mean anything? A simple test: for every year since "
+    f"{config.HISTORY_START}, take the countries **not** in armed conflict and see where conflict broke out the next "
+    "year (25 or more battle deaths, the UCDP threshold). If the index works, those countries should already have "
+    "scored high."
+)
+tr_core, tr_year, _tr_values, _tr_scores = ui.load()
+names = dict(zip(tr_core["countries"]["iso3"], tr_core["countries"]["name"]))
+basis = st.segmented_control("Score tested", ["Stability pillar", "Composite score"], default="Stability pillar",
+                             key="track_basis") or "Stability pillar"
+track = data.get_track_record(tr_core, ui.weights_tuple(), tr_core["version"],
+                              "stability" if basis == "Stability pillar" else "composite")
+if not track:
+    st.info("Not enough conflict data to run the test right now.")
+else:
+    t1, t2, t3, t4 = st.columns(4)
+    t1.metric("New conflicts tested", track["onsets"], border=True,
+              help=f"Out of {track['cases']:,} country-years at peace, {track['years'][0]}–{track['years'][1]}.")
+    t2.metric("Already in the riskiest fifth", f"{track['top_fifth_share']:.0%}", border=True,
+              help="Share of new conflicts in countries that scored in the riskiest fifth the year before.")
+    t3.metric("In the riskiest two fifths", f"{track['top_two_fifths_share']:.0%}", border=True)
+    t4.metric("Accuracy (AUC)", "—" if track["auc"] is None else f"{track['auc']:.2f}", border=True,
+              help="The chance that a country where conflict started had scored higher than one where it did not. "
+                   "0.5 = a coin flip, 1 = perfect.")
+    st.plotly_chart(charts.onset_fifths(track["by_fifth"], track["base_rate"], config.PILLAR_COLORS["stability"]),
+                    config={"displayModeBar": False})
+    with st.expander(f"The {track['onsets']} new conflicts"):
+        onsets = track["onset_list"].assign(
+            country=lambda d: d["iso3"].map(names), started=lambda d: d["year"] + 1,
+            fifth=lambda d: d["fifth"].map(lambda f: charts.FIFTHS[int(f) - 1]))
+        st.dataframe(onsets[["country", "started", "score", "fifth"]], hide_index=True,
+                     column_config={"country": "Country", "started": st.column_config.NumberColumn("Conflict began", format="%d"),
+                                    "score": st.column_config.NumberColumn("Score the year before", format="%.0f"),
+                                    "fifth": "Where it ranked"})
+    st.caption(
+        "Read with care: the scores are rebuilt with data as published today, which includes later revisions; "
+        "governance scores for a year are only published the following year; and a few dozen cases is a small sample. "
+        "The test shows the index ranks countries sensibly, not that it predicts any single event."
+    )
+    ui.cite("ucdp", "ucdp_def", "wgi")
+
+st.header("9 · Benchmark: the Fragile States Index")
+st.markdown(
+    "A second check: compare the scores with a respected independent index that measures something similar. The "
+    "[Fragile States Index](https://fragilestatesindex.org/) from The Fund for Peace rates states on 12 indicators "
+    "using expert review. Broad agreement is reassuring; the countries where the two disagree show what each one "
+    "sees that the other does not."
+)
+fsi, fsi_error = data.load_fsi()
+if fsi is None or fsi.empty:
+    st.info(f"The Fragile States Index data can't be downloaded right now{f' ({fsi_error[:120]})' if fsi_error else ''}.")
+else:
+    fsi_year = int(fsi["year"].mode().iloc[0])
+    tr_hist = ui.history(tr_core)
+    ours = tr_hist[tr_hist["year"] == fsi_year][["iso3", "composite", "tier"]].dropna(subset=["composite"])
+    both = fsi.merge(ours, on="iso3").rename(columns={"total": "fsi", "composite": "score"})
+    both["name"] = both["iso3"].map(names)
+    both["fsi_pct"] = both["fsi"].rank(pct=True) * 100
+    both["our_pct"] = both["score"].rank(pct=True) * 100
+    both["gap"] = both["our_pct"] - both["fsi_pct"]
+    top_fsi, top_ours = set(both.nlargest(20, "fsi")["iso3"]), set(both.nlargest(20, "score")["iso3"])
+    b1, b2, b3 = st.columns(3)
+    b1.metric("Countries compared", len(both), border=True)
+    b2.metric("Rank correlation", f"{both['fsi'].rank().corr(both['score'].rank()):.2f}", border=True,
+              help="Spearman correlation of the two rankings: 1 = identical order, 0 = unrelated.")
+    b3.metric("Same countries in the riskiest 20", f"{len(top_fsi & top_ours)} of 20", border=True)
+    st.plotly_chart(charts.benchmark_scatter(both, fsi_year), config={"displayModeBar": False})
+    cols = {"name": "Country", "fsi": st.column_config.NumberColumn("FSI", format="%.1f"),
+            "score": st.column_config.NumberColumn("Seismographic", format="%.0f"),
+            "gap": st.column_config.NumberColumn("Gap (percentile points)", format="%+.0f")}
+    g1, g2 = st.columns(2)
+    with g1:
+        st.markdown("**Riskier in Seismographic**")
+        st.dataframe(both.nlargest(8, "gap")[list(cols)], hide_index=True, column_config=cols)
+    with g2:
+        st.markdown("**Riskier in the Fragile States Index**")
+        st.dataframe(both.nsmallest(8, "gap")[list(cols)], hide_index=True, column_config=cols)
+    st.caption(
+        f"Both for {fsi_year}; the gap compares each country's position in the two rankings. The Fragile States Index "
+        "also weighs group grievance, demographic pressure and outside intervention, which Seismographic does not "
+        "measure; Seismographic gives more weight to economic and financial stress. The FSI data is downloaded from "
+        "its publisher when the page opens and is not stored in this project."
+    )
+    ui.cite("fsi")
+
+st.header("10 · Limitations")
 st.markdown(
     """
 * **Backward-looking data.** Governance data describe last year; conflict and displacement data lag by up to a year.
@@ -160,7 +246,7 @@ st.markdown(
 """
 )
 
-st.header("9 · How professional models compare")
+st.header("11 · How professional models compare")
 st.markdown(
     """
 * **ICRG (PRS Group)** — one of the longest-running commercial country-risk ratings; scores political, financial and
@@ -176,7 +262,7 @@ st.markdown(
 """
 )
 
-st.header("10 · Reproducibility")
+st.header("12 · Reproducibility")
 st.markdown(
     "Every indicator, source, normalisation, weight and threshold is set out on this page, and all the data come "
     "from the public sources linked above — so anyone can recompute the scores."

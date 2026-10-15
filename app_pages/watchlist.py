@@ -15,8 +15,7 @@ options, names = ui.country_options(core["countries"])
 st.title("Events watchlist")
 st.markdown(
     "Dated events that could move a country's risk: elections, referendums, budget and debt deadlines, "
-    "summits, court rulings, anniversaries of unrest. Professional risk teams keep exactly this kind of "
-    "calendar — it is what turns a static score into a forward-looking view."
+    "summits, court rulings, anniversaries of unrest."
 )
 
 events = content.load_events()

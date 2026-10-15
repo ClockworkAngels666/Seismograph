@@ -43,7 +43,17 @@ TERMS: dict[str, list[tuple[str, str]]] = {
                               "how much the result depends on modelling choices."),
         ("What-if simulator", "Change a country's indicators — or pick a scenario such as a currency crisis — and see "
                               "how its score, tier and rank would move."),
-        ("Hotspots to watch", "An automatic screen, not a forecast: countries scoring 50+ that got 2+ points riskier, "
+        ("Track record", "A test of the index: of the countries at peace in a year, did those where armed conflict "
+                         "broke out the next year already score high? Shown on the Methodology page."),
+        ("AUC (accuracy)", "The chance that a country where conflict broke out had scored higher than one where it "
+                           "did not: 0.5 is a coin flip, 1 is perfect."),
+        ("Benchmark", "A comparison with an independent index measuring something similar, here the Fragile States "
+                      "Index, to see where the two agree and where they differ."),
+        ("Case-study verdict", "Flagged, Partly flagged or Missed: what the index said the year before a major event, "
+                               "decided by a fixed rule (tier, rank and change over three years)."),
+        ("PDF brief", "A one-page summary of a country (score, pillars, trend, red flags and what it means in real "
+                      "life) to download from its profile."),
+        ("Hotspots to watch", "Countries scoring 50+ that got 2+ points riskier, "
                               "crossed a new red flag, or face a high-significance event within 120 days."),
     ],
     "Warnings": [
@@ -88,6 +98,8 @@ TERMS: dict[str, list[tuple[str, str]]] = {
         ("Refugee flow / corridor", "The number of people from one origin country living in one host country."),
         ("Host country", "A country where refugees and asylum seekers from elsewhere live."),
         ("Homicide rate", "Intentional killings per 100,000 people a year — a measure of criminal violence."),
+        ("Protest coverage", "The share of world news coverage that mentions a country together with protests, riots, "
+                             "strikes or unrest (GDELT): a fast signal of unrest getting attention."),
     ],
     "Economy": [
         ("Inflation", "How fast consumer prices rise over a year. High inflation erodes wages, savings and "
@@ -198,7 +210,8 @@ CATEGORIES: dict[str, Category] = {
 TERM_SOURCES: dict[str, str] = {
     "Composite score": "oecd_jrc", "Percentile rank": "oecd_jrc", "Log scale": "oecd_jrc", "Weights": "oecd_jrc",
     "Sensitivity check": "oecd_jrc", "Regional median": "wb_groups", "Peer group": "wb_groups",
-    "Political stability deteriorating": "wgi_method",
+    "Political stability deteriorating": "wgi_method", "Track record": "ucdp_def", "Benchmark": "fsi",
+    "Case-study verdict": "wikipedia", "Protest coverage": "gdelt",
     "Confidence": "icd203", "Key judgment": "icd203", "Estimative language (ICD 203)": "icd203",
     "Scenario": "cia_tradecraft", "Signpost": "cia_tradecraft", "Driver": "cia_tradecraft",
     "Battle-related deaths": "ucdp_def", "Active armed conflict": "ucdp_def", "War": "ucdp_def",

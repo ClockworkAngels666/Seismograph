@@ -14,7 +14,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from prm import config, sources  # noqa: E402
+import pandas as pd  # noqa: E402
+
+from prm import config, data, sources  # noqa: E402
 
 OUT = ROOT / "data" / "snapshot"
 
@@ -55,6 +57,19 @@ def main() -> int:
             "saved": meta["created"],
         }
         print(f"{key}: {len(res.data)} rows")
+
+    # The index for every year with the default weights, so the app's first page opens without computing it
+    try:
+        series = {key: pd.read_csv(OUT / f"{key}.csv") for key in config.RAW_SERIES if (OUT / f"{key}.csv").exists()}
+        countries = pd.read_csv(OUT / "countries.csv")
+        for col in ("iso2", "lat", "lng"):
+            if col not in countries.columns:
+                countries[col] = None
+        history = data.build_default_history(series, countries)
+        history.to_csv(OUT / "history.csv", index=False)
+        print(f"history: {len(history)} country-years")
+    except Exception as exc:  # the app rebuilds it if this fails
+        print(f"history: FAILED — {exc}")
 
     meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
     print(f"\nDone. {len(results) - len(failed)} of {len(results)} series saved.")

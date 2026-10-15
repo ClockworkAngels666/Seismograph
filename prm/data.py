@@ -18,11 +18,12 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from . import config, scoring, sources
+from . import config, scoring, sources, validation
 
 ROOT = Path(__file__).resolve().parent.parent
 SNAPSHOT_DIR = ROOT / "data" / "snapshot"
 CACHE_TTL = 60 * 60 * 12
+LIVE_START_DELAY = 4  # seconds
 
 
 def _read_snapshot(name: str) -> pd.DataFrame | None:
@@ -52,6 +53,22 @@ def _with_country_columns(countries: pd.DataFrame) -> pd.DataFrame:
         if col not in countries.columns:
             countries[col] = None
     return countries
+
+
+def history_years() -> range:
+    return range(config.HISTORY_START, analysis_year() + 1)
+
+
+def build_default_history(series: dict[str, pd.DataFrame], countries: pd.DataFrame) -> pd.DataFrame:
+    """The index for every year with the default weights: what almost every visitor sees, so it is built ahead."""
+    return scoring.build_history(series, countries, scoring.default_weights(), history_years())
+
+
+def _ready_history(frame: pd.DataFrame | None) -> pd.DataFrame | None:
+    """A saved history, if it covers exactly the years the app shows today."""
+    if frame is None or frame.empty or "year" not in frame:
+        return None
+    return frame if sorted(frame["year"].unique()) == list(history_years()) else None
 
 
 # ---------------------------------------------------------------------------
@@ -91,12 +108,18 @@ def _fetch_live_core() -> dict:
         flows = sources.fetch_unhcr_flows()
     except sources.SourceError:
         flows = _read_snapshot("flows")
+    countries = _with_country_columns(countries)
+    try:  # built here, in the background, so pages switch to live data without a pause
+        history = build_default_history(series, countries)
+    except Exception:
+        history = None
     return {
-        "countries": _with_country_columns(countries),
+        "countries": countries,
         "countries_from_snapshot": countries_from_snapshot,
         "series": series,
         "meta": meta,
         "flows": flows,
+        "history_default": history,
         "loaded_at": dt.datetime.now(dt.timezone.utc).strftime("%d %b %Y, %H:%M UTC"),
         "source": "live",
         "version": f"live-{time.time():.0f}",
@@ -111,6 +134,9 @@ def _live_store() -> dict:
 
 
 def _download(store: dict) -> None:
+    if store["core"] is None:
+        # First download after the server starts: let the first visitor's page draw before competing for the CPU
+        time.sleep(LIVE_START_DELAY)
     try:
         core = _fetch_live_core()
     except Exception as exc:  # keep serving what we have; ui.load reports it
@@ -162,6 +188,7 @@ def _snapshot_core() -> dict | None:
         "series": series,
         "meta": meta,
         "flows": _read_snapshot("flows"),
+        "history_default": _ready_history(_read_snapshot("history")),
         "loaded_at": f"saved snapshot of {created}",
         "source": "snapshot",
         "snapshot_date": created,
@@ -234,6 +261,13 @@ def get_scores(_core: dict, year: int, weights: tuple[tuple[str, float], ...], v
     return scoring.compute_scores(get_values(_core, year, version), dict(weights))
 
 
+@st.cache_data(ttl=CACHE_TTL, show_spinner=False, max_entries=16)
+def get_track_record(_core: dict, weights: tuple[tuple[str, float], ...], version: str, score: str) -> dict:
+    """Did high scores come before armed conflict? (see prm/validation.py)"""
+    panel = validation.onset_panel(get_history(_core, weights, version), _core["series"].get("battle_deaths"), score)
+    return validation.summary(panel)
+
+
 @st.cache_data(ttl=CACHE_TTL, show_spinner=False, max_entries=64)
 def get_sensitivity(_core: dict, year: int, iso3: str, weights: tuple[tuple[str, float], ...],
                     version: str) -> pd.DataFrame:
@@ -243,8 +277,9 @@ def get_sensitivity(_core: dict, year: int, iso3: str, weights: tuple[tuple[str,
 
 @st.cache_data(ttl=CACHE_TTL, show_spinner=False, max_entries=16)
 def get_history(_core: dict, weights: tuple[tuple[str, float], ...], version: str) -> pd.DataFrame:
-    years = range(config.HISTORY_START, analysis_year() + 1)
-    return scoring.build_history(_core["series"], _core["countries"], dict(weights), years)
+    if dict(weights) == scoring.default_weights() and _core.get("history_default") is not None:
+        return _core["history_default"]  # built ahead of time (snapshot or live download)
+    return scoring.build_history(_core["series"], _core["countries"], dict(weights), history_years())
 
 
 @st.cache_data(ttl=60 * 10, show_spinner=False)
@@ -275,6 +310,23 @@ def load_videos() -> pd.DataFrame | None:
 def load_tone(name: str) -> tuple[pd.DataFrame | None, str | None]:
     try:
         return sources.fetch_gdelt_tone(name), None
+    except sources.SourceError as exc:
+        return None, str(exc)
+
+
+@st.cache_data(ttl=60 * 60 * 6, show_spinner=False)
+def load_protests(name: str) -> tuple[pd.DataFrame | None, str | None]:
+    try:
+        return sources.fetch_gdelt_protests(name), None
+    except sources.SourceError as exc:
+        return None, str(exc)
+
+
+@st.cache_data(ttl=60 * 60 * 24 * 7, show_spinner=False)
+def load_fsi() -> tuple[pd.DataFrame | None, str | None]:
+    """The Fragile States Index edition in config.FSI_URL, matched to our country codes (cached for a week)."""
+    try:
+        return sources.fetch_fsi(config.FSI_URL, load_countries()), None
     except sources.SourceError as exc:
         return None, str(exc)
 

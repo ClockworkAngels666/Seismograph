@@ -43,7 +43,8 @@ jobs:
           api.upload_folder(
               repo_id=space, repo_type="space", folder_path=".",
               commit_message=f"Publish {os.environ['GITHUB_SHA'][:7]}",
-              ignore_patterns=[".git/*", ".github/*", ".devcontainer/*", "deploy/*", "DEPLOY.md", "__pycache__/*"],
+              ignore_patterns=[".git/*", ".github/*", ".devcontainer/*", "deploy/*", "docs/*", "tests/*", "DEPLOY.md",
+                               "__pycache__/*", "pytest.ini"],
               delete_patterns=["*.py", "*.csv", "*.md", "*.svg", "*.toml", "*.txt", "*.json", "Dockerfile"],
           )
           print(f"Published to https://huggingface.co/spaces/{space}")

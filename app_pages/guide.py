@@ -1,4 +1,4 @@
-"""Real-world guide: what Seismographic's numbers mean in real life, and how to put them to work."""
+"""How to analyze Seismographic data: what Seismographic's numbers mean in real life, and how to put them to work."""
 
 import pandas as pd
 import streamlit as st
@@ -12,7 +12,7 @@ countries = core["countries"]
 options, names = ui.country_options(countries)
 events = content.load_events()
 
-ui.hero("🧭 Real-world guide", "From scores and thresholds to what they mean on the ground — and what to do about it.")
+ui.hero("🧭 How to analyze Seismographic data?")
 st.markdown(
     "Seismographic turns open data into numbers: a 0–100 score, a tier, four pillars and a set of red flags. This "
     "page translates those numbers into real life — what they usually look like for the people living, working or "

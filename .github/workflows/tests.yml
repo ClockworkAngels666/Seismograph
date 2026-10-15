@@ -1,0 +1,26 @@
+# Runs the tests on every push and pull request: the scoring model, the analysis helpers, the PDF brief, and every
+# page and country tab of the app (using the saved data snapshot). A red cross on a commit means something broke.
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install
+        run: pip install -r requirements.txt pytest
+      - name: Run the tests
+        run: python -m pytest -q

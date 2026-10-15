@@ -52,8 +52,6 @@ st.subheader("On the globe")
 ui.globe_panel(table=table.reset_index(), hist=hist, flows=core.get("flows"), metric="composite",
                metric_label="Composite", key="cmp_globe", in_view=set(picked), height=480,
                layers={"spin": True, "flows": False, "conflict": False})
-st.caption("Your countries in colour, everything else dimmed. Click one for its index; ▶ replays since "
-           f"{config.HISTORY_START}.")
 ui.cite("index", "natural_earth")
 
 st.subheader("Risk index over time")

@@ -5,7 +5,7 @@ import math
 import pandas as pd
 import streamlit as st
 
-from prm import charts, config, content, data, interpret, scoring, ui
+from prm import charts, config, content, data, interpret, report, scoring, ui
 from prm.config import INDICATORS, PILLARS, SEVERITY_ICON, SEVERITY_LABEL, TIER_ORDER, WGI_DIMENSIONS
 
 core, year, values, scores = ui.load()
@@ -50,6 +50,12 @@ st.caption(
     f"GDP per capita {gdppc_text} (IMF, {year})"
 )
 ui.cite("wb_countries", "wdi", "imf")
+elsewhere = ([("World Bank", f"https://data.worldbank.org/country/{row['iso2']}")] if isinstance(row["iso2"], str) else []) + [
+    ("IMF", f"https://www.imf.org/en/countries/{iso3.lower()}"),
+    ("ReliefWeb", f"https://reliefweb.int/country/{iso3.lower()}")]
+if row["income"] != "High income":  # FAO's food-security briefs cover developing countries
+    elsewhere.append(("FAO food security", f"https://www.fao.org/giews/countrybrief/country.jsp?code={iso3}"))
+st.caption(f"{name} elsewhere: " + " · ".join(f"[{label} ↗]({url})" for label, url in elsewhere))
 
 def _add_to_compare() -> None:
     ui.add_to_compare(iso3)
@@ -59,7 +65,7 @@ def _add_to_compare() -> None:
 if toast := st.session_state.pop("_compare_toast", None):
     st.toast(toast, icon="✅")
 compare_list = st.session_state.get(ui.COMPARE_LIST, [])
-b1, b2, _ = st.columns([1, 1.3, 2.5])
+b1, b2, b3, _ = st.columns([1, 0.8, 1.3, 1.7])
 if iso3 in compare_list:
     b1.button("✓ In your comparison", disabled=True, key="compare_added")
 elif len(compare_list) >= config.MAX_COMPARE:
@@ -68,7 +74,18 @@ elif len(compare_list) >= config.MAX_COMPARE:
 else:
     b1.button("➕ Add to compare", key="compare_add", on_click=_add_to_compare)
 if compare_list:
-    b2.page_link(ui.COMPARE_PAGE, label=f"Open comparison ({len(compare_list)})", icon=":material/compare_arrows:")
+    b3.page_link(ui.COMPARE_PAGE, label=f"Open comparison ({len(compare_list)})", icon=":material/compare_arrows:")
+
+
+def _brief_pdf() -> bytes:
+    """Built only when the button is clicked."""
+    reading = interpret.country_reading(iso3, table, values, scores, hist, content.load_events(), core.get("flows"), year)
+    return report.country_pdf(reading, row, country_hist, scoring.red_flags(v), year)
+
+
+b2.download_button("📄 PDF brief", data=_brief_pdf, file_name=f"{iso3}_risk_brief_{year}.pdf", mime="application/pdf",
+                   on_click="ignore", key="brief_pdf", help="A one-page brief: score, pillars, trend, red flags and "
+                                                       "what it means in real life.")
 
 h1, h2, h3, h4 = st.columns([1.2, 1, 1, 1])
 with h1:
@@ -109,7 +126,6 @@ with t_summary:
             st.subheader("What the data says")
             for line in scoring.country_brief(iso3, name, values, scores, core["series"], countries, year):
                 st.markdown(f"- {line}")
-            st.caption("Generated automatically from the data — no judgments added. The analyst view is in the last tab.")
             ui.cite("index")
         with c2:
             st.subheader("Red flags")
@@ -171,7 +187,7 @@ with t_real:
                                             year)
         ui.render_reading(reading, key=f"real_{iso3}")
         ui.cite("index", "ifes", "ucdp_def", "imf_ara")
-        st.page_link("app_pages/guide.py", label="How to read and use these numbers: the Real-world guide",
+        st.page_link("app_pages/guide.py", label="How to analyze Seismographic data?",
                      icon=":material/explore:")
 
 # --- Peers ------------------------------------------------------------------------
@@ -512,6 +528,18 @@ with t_news:
             else:
                 st.plotly_chart(charts.tone_chart(tone), config={"displayModeBar": False})
                 st.caption("GDELT average tone of English-language coverage. A sustained fall often precedes or accompanies crises.")
+                ui.cite("gdelt")
+        if st.toggle("Show protest coverage over the last 3 months (GDELT)"):
+            protests, perr = data.load_protests(news_name)
+            if perr:
+                st.info(f"Protest data unavailable right now ({perr[:140]}). GDELT allows few requests; try again in a minute.")
+            elif protests is None or protests.empty:
+                st.info("No protest coverage found.")
+            else:
+                st.plotly_chart(charts.protest_chart(protests), config={"displayModeBar": False})
+                st.caption(f"Share of all English-language news GDELT monitors that mentions {name} together with protests, "
+                           "riots, strikes or unrest, smoothed over a week. Spikes show unrest getting attention; compare "
+                           "with the headlines above.")
                 ui.cite("gdelt")
 
 # --- Analyst assessment -------------------------------------------------------------------

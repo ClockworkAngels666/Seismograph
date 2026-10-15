@@ -16,6 +16,9 @@ st.set_page_config(
 st.logo(brand.svg("logo"), icon_image=brand.svg("icon"), size="large")
 
 pages = {
+    "Start here": [
+        st.Page("app_pages/intro.py", title="Introduction", icon=":material/waving_hand:", url_path="introduction"),
+    ],
     "Monitor": [
         st.Page("app_pages/overview.py", title="Global overview", icon=":material/public:", default=True),
         st.Page("app_pages/country.py", title="Country profile", icon=":material/flag:", url_path="country"),
@@ -24,7 +27,8 @@ pages = {
         st.Page("app_pages/video.py", title="Live TV & video", icon=":material/live_tv:", url_path="video"),
     ],
     "Briefings": [
-        st.Page("app_pages/guide.py", title="Real-world guide", icon=":material/lightbulb:", url_path="guide"),
+        st.Page("app_pages/guide.py", title="How to analyze Seismographic data?", icon=":material/lightbulb:", url_path="guide"),
+        st.Page("app_pages/cases.py", title="Did it see it coming?", icon=":material/history:", url_path="cases"),
         st.Page("app_pages/changes.py", title="What changed", icon=":material/trending_up:", url_path="changes"),
         st.Page("app_pages/regions.py", title="Regional briefings", icon=":material/travel_explore:", url_path="regions"),
         st.Page("app_pages/conflict.py", title="Conflict & displacement", icon=":material/crisis_alert:",
