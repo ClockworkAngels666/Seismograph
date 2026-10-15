@@ -35,6 +35,23 @@ Streamlit Community Cloud shows a small "Hosted with Streamlit" badge in the bot
 5. After 3–5 minutes of building, share `https://YOUR-HF-USERNAME-seismographic.hf.space` (username in lower case):
    the app full screen with nothing around it.
 
+## Option C: Vercel (experimental, no badge)
+
+The repository is ready for Vercel: `asgi.py` runs the app as a standard Python web app (Streamlit's `st.App`), and
+`vercel.json` gives it the longest time Vercel's free plan allows.
+
+1. Sign in at [vercel.com](https://vercel.com) with GitHub (**Continue with GitHub**).
+2. **Add New… → Project**, then **Import** `ClockworkAngels666/Seismographic`. If it isn't listed, click
+   **Adjust GitHub App Permissions** and allow Vercel to see the repository.
+3. Leave the settings as they are (Framework Preset: *Other*) and click **Deploy**. Every push to `main` then
+   deploys again by itself.
+
+Know the limits before relying on it. Vercel runs the app in short-lived functions and supports the live
+connection Streamlit needs only in beta. On the free plan, each visitor's connection is cut after 5 minutes. The
+page reconnects by itself, but it can come back as a fresh session, so choices such as the selected country or
+the weights may reset. A first visit after a quiet spell also waits for a cold start. Options A and B do not have
+these limits.
+
 The `Dockerfile` in the repository also runs the app on Render, Fly.io or any other Docker host.
 
 ## Monthly data backup

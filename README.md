@@ -142,7 +142,7 @@ streamlit run streamlit_app.py
 
 Run the tests with `pip install pytest` and then `python -m pytest`.
 
-Publishing on Streamlit Community Cloud (or, without the "Hosted with Streamlit" badge, on Hugging Face Spaces) is
+Publishing on Streamlit Community Cloud (or, without the "Hosted with Streamlit" badge, on Hugging Face Spaces or, experimentally, Vercel) is
 described step by step in [DEPLOY.md](DEPLOY.md). The `Dockerfile` also runs it on Render, Fly.io or any Docker host.
 
 ## Limitations

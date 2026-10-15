@@ -1,0 +1,11 @@
+.github
+.devcontainer
+.venv
+__pycache__
+*.pyc
+deploy
+docs
+tests
+pytest.ini
+Dockerfile
+.dockerignore
